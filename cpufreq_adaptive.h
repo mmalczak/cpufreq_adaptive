@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  *	linux/drivers/cpufreq/cpufreq_adaptive.h
  *
  *	Header file for adaptive cpufreq governor template.
  *
- *	Copyright (C)  2020 Miłosz Malczak
+ *	Copyright (C) 2020, NASK, Research and Academic Computer Network
+ *	Authors: 	Miłosz Malczak <milosz.malczak@nask.pl>
+ *			Michał Karpowicz <michal.karpowicz@nask.pl>
+ *			Michał Getka <michal.getka@nask.pl>
+
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
 
 
