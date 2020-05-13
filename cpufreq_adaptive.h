@@ -56,7 +56,7 @@ struct adaptive_estimation_params
 {
 	int64_t P[deg*deg];
 	int64_t theta[deg];		//value used for estimation
-	int64_t theta_out[deg]; //filtered params or params set by the user
+	int64_t theta_out[deg]; 	//filtered params
 };
 
 struct adaptive_controller_polynomials
