@@ -49,6 +49,51 @@
 #define BUF_IDX_ADD(BUF_IDX, VALUE) ((BUF_IDX+(VALUE))&(buf_length-1))
 #define PARAMS_FILTER_LENGTH 1
 
+#define gov_show_one_adaptive(file_name)				\
+static ssize_t show_##file_name						\
+(struct gov_attr_set *attr_set, char *buf)				\
+{									\
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);		\
+	struct adaptive_dbs_tuners *tuners = dbs_data->tuners;		\
+	return sprintf_fp(buf, tuners->file_name, '\n');		\
+}
+
+#define gov_show_vector_adaptive(file_name, length)			\
+static ssize_t show_##file_name						\
+(struct gov_attr_set *attr_set, char *buf)				\
+{									\
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);		\
+	struct adaptive_dbs_tuners *tuners = dbs_data->tuners;		\
+	int i;								\
+	int ret=0;							\
+	for(i=0; i<length-1; i++)					\
+		ret+=sprintf_fp(buf+ret, tuners->file_name[i], ' ');	\
+	ret+=sprintf_fp(buf+ret, tuners->file_name[i], '\n');		\
+	return ret;							\
+}
+
+#define gov_store_vector_adaptive(file_name, size)			\
+static ssize_t store_##file_name					\
+(struct gov_attr_set *attr_set, const char *buf, size_t count)		\
+{									\
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);		\
+	struct adaptive_dbs_tuners *tuners = dbs_data->tuners;		\
+	int64_t input[size];						\
+	int ret=0;							\
+	int buf_idx=0;							\
+	int i;								\
+									\
+	for(i=0; i<size; i++) {						\
+		ret = sscanf_fp(buf, &input[i], &buf_idx);		\
+		if (ret != 1) {						\
+			return -EINVAL;					\
+		}							\
+	}								\
+	for(i=0; i<size; i++)						\
+		tuners->file_name[i] = input[i];			\
+	return count;							\
+}
+
 /* Fixed point arythmetics */
 
 #define POINT_POS (32)
