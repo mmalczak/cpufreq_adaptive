@@ -4,7 +4,7 @@
  *
  *	Header file for adaptive cpufreq governor template.
  *
- *	Copyright (C) 2020, NASK, Research and Academic Computer Network
+ *	Copyright (C) 2020, NASK National Research Institute for Cybersecurity & AI
  *	Authors: 	Miłosz Malczak <milosz.malczak@nask.pl>
  *			Michał Karpowicz <michal.karpowicz@nask.pl>
  *			Michał Getka <michal.getka@nask.pl>
