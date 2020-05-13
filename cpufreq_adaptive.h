@@ -12,6 +12,8 @@
 
 
 #include "cpufreq_governor.h"
+#include <linux/string.h>
+#include <linux/types.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -43,49 +45,11 @@
 #error
 #endif
 
-
-/* Controller */
-#include <linux/string.h>
-
 #define buf_length (1<<3)
 #define BUF_IDX_ADD(BUF_IDX, VALUE) ((BUF_IDX+(VALUE))&(buf_length-1))
-
 #define PARAMS_FILTER_LENGTH 1
 
-struct adaptive_estimation_params
-{
-	int64_t P[deg*deg];
-	int64_t theta[deg];		//value used for estimation
-	int64_t theta_out[deg]; 	//filtered params
-};
-
-struct adaptive_controller_polynomials
-{
-	int64_t R[d_R+1];
-	int64_t S[d_S+1];
-	int64_t T[d_T+1];
-	int64_t D[d_D+1];
-};
-
-struct adaptive_controller_buffers
-{
-	int idx;
-	int64_t y[buf_length];
-	int64_t u[buf_length];
-	int64_t uc[buf_length];
-	int64_t v[buf_length];
-};
-
-struct params_filter
-{
-	int idx;
-	int64_t buf[(deg)*PARAMS_FILTER_LENGTH];
-};
-
-/* Controller end*/
-
 /* Fixed point arythmetics */
-#include <linux/types.h>
 
 #define POINT_POS (32)
 #define FP(X) ((X)*((int64_t)1<<(POINT_POS)))
@@ -122,7 +86,7 @@ static inline int64_t division(int64_t a, int64_t b)
 /* Fixed point arythmetics end */
 
 /* Maths */
-int pow_10(int l)
+static inline int pow_10(int l)
 {
 	int i;
 	int ret=1;
@@ -214,7 +178,6 @@ static void swap_rows_to_right_side(int64_t *A, int i_1, int i_2, int j)
 	}
 }
 /* Matrix operations end*/
-
 
 /* Linear solver */
 
@@ -313,7 +276,7 @@ static int solve_linear_equation(int64_t *A_orig, int64_t *b_orig, int64_t *x)
 /* Linear solver end */
 
 /* sysfs read/write */
-ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
+static ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
 {
 	int ret = 0;
 	int negative = 0;
@@ -344,7 +307,7 @@ ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
 	return ret;
 }
 
-ssize_t sprintf_fp(char *buf, int64_t value, char end_char)
+static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 {
 	int decimal;
 	int fractional;
@@ -364,6 +327,36 @@ ssize_t sprintf_fp(char *buf, int64_t value, char end_char)
 }
 
 /* sysfs read/write end */
+
+struct adaptive_estimation_params
+{
+	int64_t P[deg*deg];
+	int64_t theta[deg];		//value used for estimation
+	int64_t theta_out[deg]; 	//filtered params
+};
+
+struct adaptive_controller_polynomials
+{
+	int64_t R[d_R+1];
+	int64_t S[d_S+1];
+	int64_t T[d_T+1];
+	int64_t D[d_D+1];
+};
+
+struct adaptive_controller_buffers
+{
+	int idx;
+	int64_t y[buf_length];
+	int64_t u[buf_length];
+	int64_t uc[buf_length];
+	int64_t v[buf_length];
+};
+
+struct params_filter
+{
+	int idx;
+	int64_t buf[(deg)*PARAMS_FILTER_LENGTH];
+};
 
 struct adaptive_policy_dbs_info {
 	struct policy_dbs_info policy_dbs;
