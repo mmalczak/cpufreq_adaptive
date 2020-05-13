@@ -459,7 +459,6 @@ static ssize_t store_lambda(struct gov_attr_set *attr_set, const char *buf,
 	return count;
 }
 
-
 gov_store_vector_adaptive(theta_limit_up, deg);
 gov_store_vector_adaptive(theta_limit_down, deg);
 gov_store_vector_adaptive(Ao, (d_Ao+1));
@@ -482,8 +481,6 @@ gov_attr_rw(Ao);
 gov_attr_rw(Am);
 gov_attr_rw(Rd);
 gov_attr_rw(Sd);
-
-
 
 static struct attribute *adaptive_attributes[] = {
 	&sampling_rate.attr,
@@ -535,7 +532,6 @@ static void adaptive_dbs_tuners_init(struct adaptive_dbs_tuners *tuners)
 	tuners->Rd[1] = FP(-1);
 	tuners->Sd[0] = FP(1);
 	tuners->Sd[1] = FP(0);
-
 }
 
 static int adaptive_init(struct dbs_data *dbs_data)
@@ -562,7 +558,6 @@ static void adaptive_start(struct cpufreq_policy *policy)
 	restart_controller(dbs_info);
 }
 
-
 static struct dbs_governor adaptive_dbs_gov = {
 	.gov = CPUFREQ_DBS_GOVERNOR_INITIALIZER("adaptive"),
 	.kobj_type = { .default_attrs = adaptive_attributes },
@@ -575,7 +570,6 @@ static struct dbs_governor adaptive_dbs_gov = {
 };
 
 #define CPU_FREQ_GOV_ADAPTIVE	(&adaptive_dbs_gov.gov)
-
 
 static int __init cpufreq_gov_adaptive_init(void)
 {
@@ -772,6 +766,4 @@ static void __exit tlmsrv_exit(void){
   unregister_chrdev(device_major_number, DEVICE_NAME);
 
 }
-
-
 #endif
