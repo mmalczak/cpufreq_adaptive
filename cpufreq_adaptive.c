@@ -65,7 +65,7 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 	memset(&(dbs_info->est_params), 0, sizeof(struct adaptive_estimation_params));
 	memset(&(dbs_info->poly), 0, sizeof(struct adaptive_controller_polynomials));
 	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
-	memset(&(dbs_info->p_filter), 0, sizeof(struct ParamsFilter));
+	memset(&(dbs_info->p_filter), 0, sizeof(struct params_filter));
 
 	for(i=0; i<deg; i++) {
 		for(j=0; j<deg; j++) {
