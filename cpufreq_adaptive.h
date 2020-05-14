@@ -44,6 +44,9 @@
 #define d_Rp		(d_BminusSd)
 #define d_Acl		(d_ARd+d_BminusSd)
 
+#define d_M		((d_Rp+1)+(d_Sp+1))
+
+
 #if d_Acl != d_Ao+d_Am
 #error
 #endif

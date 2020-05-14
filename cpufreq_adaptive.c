@@ -317,42 +317,37 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	int err = 0;
 	int i = 0;
 	int j = 0;
-	const int N = ((d_Rp+1)+(d_Sp+1));
 
-	int64_t *M = kzalloc(N*N*sizeof(int64_t), GFP_KERNEL);
-	int64_t *c = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
-	int64_t *temp = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
+	int64_t M[d_M*d_M];
+	int64_t c[d_M];
+	int64_t temp[d_M];
 	int64_t ARd[d_ARd+1];
 	int64_t BminusSd[d_BminusSd+1];
 	int64_t Rtemp[d_Rp + d_Rd + 1];
 
 	combine_model_and_custom_filters(A, tuners->Rd, ARd,
 					Bminus, tuners->Sd, BminusSd);
-	for(i=0; i<N; i++) {
-		for(j=0; j<N; j++) {
+	for(i=0; i<d_M; i++) {
+		for(j=0; j<d_M; j++) {
 			if(j<d_Rp+1)
-				fill_autoregresive_coeff(M, N, ARd, i, j);
+				fill_autoregresive_coeff(M, d_M, ARd, i, j);
 			else
-				fill_moving_average_coeff(M, N, BminusSd, i, j);
+				fill_moving_average_coeff(M, d_M, BminusSd, i, j);
 		}
 	}
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
-	err = solve_linear_equation(N, M, c, temp);
+	err = solve_linear_equation(d_M, M, c, temp);
 	if(err==-1)
-		goto out_free_buffers;
+		return err;;
 	conv(temp, tuners->Rd, Rtemp, d_Rp+1, d_Rd+1);
 	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus+1);
 	conv(&temp[d_Rp+1], tuners->Sd, poly->S, d_Sp+1, d_Sd+1);
 	err = normalise_controller_gain(tuners->Am, tuners->Ao, Bminus, Bmd,
 					poly->T);
 	if(err==-1)
-		goto out_free_buffers;
+		return err;
 	calculate_anti_windup_polynomial(poly->D, poly->R, tuners->Ao);
-out_free_buffers:
-	kfree(M);
-	kfree(c);
-	kfree(temp);
 	return err;
 }
 
