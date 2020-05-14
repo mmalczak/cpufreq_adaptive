@@ -292,7 +292,8 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	}
 }
 
-static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig, int64_t *x)
+static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
+				int64_t *x)
 {
 	int err = 0;
 	int i = 0;
