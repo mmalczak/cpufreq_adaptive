@@ -218,26 +218,19 @@ static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 
 static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 {
-	int64_t *temp = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
+	int64_t temp;
 	int idx;
 	int idx_2;
 	int k;
 	idx = i_1*N+j;
-	for(k=j; k<N; k++) {
-		temp[k] = A[idx];
-		idx++;
-	}
-	idx = i_1*N+j;
 	idx_2 = i_2*N+j;
-	for(k=0; k<N-j; k++) {
-		A[idx+k] = A[idx_2+k];
-	}
-	idx = i_2*N+j;
 	for(k=j; k<N; k++) {
-		A[idx] = temp[k];
+		temp = A[idx];
+		A[idx] = A[idx_2];
+		A[idx_2] = temp;
 		idx++;
+		idx_2++;
 	}
-	kfree(temp);
 }
 
 static int partial_pivoting(int N, int64_t *A, int64_t *b, int j)
