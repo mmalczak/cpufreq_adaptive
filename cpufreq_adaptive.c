@@ -217,8 +217,8 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 	for(i=0; i<d_B+1; i++) {
 		phi[d_A+i] = u_buf[(buf_idx+i)&(buf_length-1)];
 	}
-	multiply_matrices(P, phi, P_phi, deg, deg, deg, 1);
-	multiply_matrices(phi, P_phi, phi_P_phi, 1, deg, deg, 1);
+	multiply_matrices(deg, 1, deg, P, phi, P_phi);
+	multiply_matrices(1, 1, deg, phi, P_phi, phi_P_phi);
 	*phi_P_phi_ = phi_P_phi[0];
 	K_denominator = lambda + phi_P_phi[0];
 
@@ -226,12 +226,12 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 		K[i] = division(P_phi[i], K_denominator);
 	}
 
-	epsilon = y_buf[buf_idx] - multiply_vectors(phi, theta, deg);
+	epsilon = y_buf[buf_idx] - dot_product(deg, phi, theta);
 
 	conditionally_update_theta(phi_P_phi[0], theta, K, epsilon);
 
-	multiply_matrices(K, phi, K_phi, deg, 1, 1, deg);
-	multiply_matrices(K_phi, P, K_phi_P, deg, deg, deg, deg);
+	multiply_matrices(deg, deg, 1, K, phi, K_phi);
+	multiply_matrices(deg, deg, deg, K_phi, P, K_phi_P);
 	for(i=0; i<deg*deg; i++) {
 		P[i] = P[i] - K_phi_P[i];
 		P[i] = division(P[i], lambda);

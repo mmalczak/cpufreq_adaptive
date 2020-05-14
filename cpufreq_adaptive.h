@@ -143,9 +143,6 @@ static inline int pow_10(int l)
 	return ret;
 }
 
-/* Maths end*/
-
-/* Matrix operations */
 static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 {
 	int i = 0;
@@ -165,35 +162,48 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 		}
 	}
 }
+/* Maths end*/
 
-static inline int64_t multiply_vectors(int64_t *a, int64_t *b, int length)
+/* Matrix operations */
+static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
 {
 	int i=0;
 	int64_t y = 0;
-	for(i=0; i<length; i++) {
+	for(i=0; i<N; i++) {
 		y += mult(a[i], b[i]);
 	}
 	return y;
 }
 
-static void multiply_matrices(int64_t *A, int64_t *B, int64_t *C,
-				int A_row, int A_col, int B_row, int B_col)
+/*
+ * M - number of rows of the matrix A
+ * N - number of columns of the matrix B
+ * K - number of columns of the matrix A equal
+ * 	to the number of rows of the matrix B
+ * A, B - input matrices
+ * C - output matrix
+ */
+static void multiply_matrices(int M, int N, int K,
+				int64_t *A, int64_t *B, int64_t *C)
 {
 	int i=0, row=0, col=0, A_idx=0, B_idx=0, C_idx=0;
 	int64_t y = 0;
-	for(row=0; row<A_row; row++) {
-		for(col=0; col<B_col; col++) {
-			C_idx = col + row * B_col;
+	for(row=0; row<M; row++) {
+		for(col=0; col<N; col++) {
+			C_idx = col + row * N;
 			y = 0;
-			for(i=0; i<A_col; i++) {
-				A_idx = i + row * A_col;
-				B_idx = i * B_col + col;;
+			for(i=0; i<K; i++) {
+				A_idx = i + row * K;
+				B_idx = i * N + col;;
 				y += mult(A[A_idx], B[B_idx]);
 			}
 			C[C_idx] = y;
 		}
 	}
 }
+/* Matrix operations end*/
+
+/* Linear solver */
 
 static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 {
@@ -202,11 +212,6 @@ static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 	v[pos_1] = v[pos_2];
 	v[pos_2] = temp;
 }
-
-
-/* Matrix operations end*/
-
-/* Linear solver */
 
 static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 {
