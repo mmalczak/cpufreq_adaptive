@@ -338,7 +338,7 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
 	err = solve_linear_equation(d_M, M, c, temp);
-	if(err==-1)
+	if(err!=0)
 		return err;;
 	conv(temp, tuners->Rd, Rtemp, d_Rp+1, d_Rd+1);
 	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus+1);

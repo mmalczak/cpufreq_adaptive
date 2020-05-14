@@ -295,8 +295,16 @@ static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
 	int i = 0;
 	int j = 0;
 	int idx = 0;
-	int64_t *A = kzalloc(N*N*sizeof(int64_t), GFP_KERNEL);
-	int64_t *b = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
+	int64_t *copy_space;
+	int64_t *A;
+	int64_t *b;
+
+	copy_space = kzalloc((N+1)*N*sizeof(int64_t), GFP_KERNEL);
+	if(!copy_space)
+		return -ENOMEM;
+
+	A = copy_space;
+	b = copy_space+N*N;
 
 	/* Copy A and b matrices, otherwise original data will be lost*/
 	for(idx=0; idx<N*N; idx++) {
@@ -325,8 +333,7 @@ static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
 	}
 
 out_free_buffers:
-	kfree(A);
-	kfree(b);
+	kfree(copy_space);
 	return err;
 }
 
