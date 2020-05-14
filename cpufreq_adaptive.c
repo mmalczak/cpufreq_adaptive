@@ -319,7 +319,7 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 	}
 }
 
-void params_filter(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
+void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 					int64_t *params_filtered)
 {
 	int i, j;
@@ -369,7 +369,7 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 		else if(dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
 			dbs_info->est_params.theta[i] = tuners->theta_limit_down[i];
 	}
-	params_filter(dbs_info, dbs_info->est_params.theta,
+	filter_params(dbs_info, dbs_info->est_params.theta,
 			dbs_info->est_params.theta_out);
 
 	A[0] = FP(1.0);
