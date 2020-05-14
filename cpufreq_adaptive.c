@@ -301,7 +301,7 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 	memset(&(dbs_info->est_params), 0, sizeof(struct adaptive_estimation_params));
 	memset(&(dbs_info->poly), 0, sizeof(struct adaptive_controller_polynomials));
 	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
-	memset(&(dbs_info->p_filter), 0, sizeof(struct params_filter));
+	memset(&(dbs_info->filt_params), 0, sizeof(struct filter_params));
 
 	for(i=0; i<deg; i++) {
 		for(j=0; j<deg; j++) {
@@ -325,15 +325,15 @@ void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 	int i, j;
 	for(i=0; i<deg; i++)
 		params_filtered[i] = 0;
-	dbs_info->p_filter.idx +=1;
-	if(dbs_info->p_filter.idx == PARAMS_FILTER_LENGTH)
-		dbs_info->p_filter.idx = 0;
+	dbs_info->filt_params.idx +=1;
+	if(dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
+		dbs_info->filt_params.idx = 0;
 	for(i=0; i<(deg); i++)
-		dbs_info->p_filter.buf[dbs_info->p_filter.idx+i*PARAMS_FILTER_LENGTH] = params[i];
+		dbs_info->filt_params.buf[dbs_info->filt_params.idx+i*PARAMS_FILTER_LENGTH] = params[i];
 
 	for(i=0; i<PARAMS_FILTER_LENGTH; i++) {
 		for(j=0; j<(deg);j++) {
-			params_filtered[j] += dbs_info->p_filter.buf[i+j*PARAMS_FILTER_LENGTH];
+			params_filtered[j] += dbs_info->filt_params.buf[i+j*PARAMS_FILTER_LENGTH];
 		}
 	}
 	for(i=0; i<(deg); i++) {

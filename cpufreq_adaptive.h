@@ -128,7 +128,7 @@ struct adaptive_controller_buffers
 	int64_t v[buf_length];
 };
 
-struct params_filter
+struct filter_params
 {
 	int idx;
 	int64_t buf[(deg)*PARAMS_FILTER_LENGTH];
@@ -141,7 +141,7 @@ struct adaptive_policy_dbs_info {
 	struct adaptive_estimation_params est_params;
 	struct adaptive_controller_polynomials poly;
 	struct adaptive_controller_buffers buf;
-	struct params_filter p_filter;
+	struct filter_params filt_params;
 };
 
 static inline struct adaptive_policy_dbs_info *to_dbs_info(struct policy_dbs_info *policy_dbs)
