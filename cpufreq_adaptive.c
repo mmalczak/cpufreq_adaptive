@@ -49,14 +49,14 @@ static void tlmsrv_exit(void);
 
 static inline int64_t mult(int64_t a, int64_t b)
 {
-	int64_t a_h = a>>(POINT_POS/2);
-	int64_t a_l = a-(a_h<<(POINT_POS/2));
-	int64_t b_h = b>>(POINT_POS/2);
-	int64_t b_l = b-(b_h<<(POINT_POS/2));
+	int64_t a_h = a>>(POINT_POS / 2);
+	int64_t a_l = a-(a_h<<(POINT_POS / 2));
+	int64_t b_h = b>>(POINT_POS / 2);
+	int64_t b_l = b-(b_h<<(POINT_POS / 2));
 
-	int64_t c = (a>>(POINT_POS/2))*(b>>(POINT_POS/2));
-	c += (a_h*b_l)>>(POINT_POS/2);
-	c += (a_l*b_h)>>(POINT_POS/2);
+	int64_t c = (a>>(POINT_POS / 2)) * (b>>(POINT_POS / 2));
+	c += (a_h * b_l)>>(POINT_POS / 2);
+	c += (a_l * b_h)>>(POINT_POS / 2);
 	return c;
 }
 
@@ -66,11 +66,11 @@ static inline int64_t division(int64_t a, int64_t b)
 	int counter = 0;
 	while(abs(a)<((int64_t)1<<(62))) {
 		a = a<<1;
-		counter+=1;
+		counter += 1;
 		if(counter==POINT_POS)
 			break;
 	}
-	c = a/(b)*((int64_t)1<<(POINT_POS-counter));
+	c = a / (b) * ((int64_t)1<<(POINT_POS - counter));
 	return c;
 }
 
@@ -80,9 +80,9 @@ static inline int64_t division(int64_t a, int64_t b)
 static inline int pow_10(int l)
 {
 	int i;
-	int ret=1;
+	int ret = 1;
 	for(i=0; i<l; i++)
-		ret*=10;
+		ret *= 10;
 	return ret;
 }
 
@@ -95,11 +95,11 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 	for(i=0; i<a_l+b_l-1; i++) {
 		c[i] = 0;
 		up = i;
-		if(up>(a_l-1))
-			up=(a_l-1);
-		l = i-(b_l-1);
-		if(l<0)
-			l=0;
+		if(up>(a_l - 1))
+			up=(a_l - 1);
+		l = i - (b_l - 1);
+		if(l < 0)
+			l = 0;
 		for(j=up; j>=l; j--) {
 			c[i] += mult(a[j], b[i-j]);
 		}
@@ -110,7 +110,7 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 /* Matrix operations */
 static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
 {
-	int i=0;
+	int i = 0;
 	int64_t y = 0;
 	for(i=0; i<N; i++) {
 		y += mult(a[i], b[i]);
@@ -129,7 +129,12 @@ static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
 static void multiply_matrices(int M, int N, int K,
 				int64_t *A, int64_t *B, int64_t *C)
 {
-	int i=0, row=0, col=0, A_idx=0, B_idx=0, C_idx=0;
+	int i = 0;
+	int row = 0;
+	int col = 0;
+	int A_idx = 0;
+	int B_idx = 0;
+	int C_idx = 0;
 	int64_t y = 0;
 	for(row=0; row<M; row++) {
 		for(col=0; col<N; col++) {
@@ -162,8 +167,8 @@ static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 	int idx;
 	int idx_2;
 	int k;
-	idx = i_1*N+j;
-	idx_2 = i_2*N+j;
+	idx = i_1 * N + j;
+	idx_2 = i_2 * N + j;
 	for(k=j; k<N; k++) {
 		temp = A[idx];
 		A[idx] = A[idx_2];
@@ -205,7 +210,7 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	int idx = 0;
 	int i = 0;
 	int k = 0;
-	idx = j*(N+1);
+	idx = j * (N + 1);
 	pivot = A[idx];
 	for(k=j; k<N; k++) {
 		A[idx] = division(A[idx], pivot);
@@ -214,8 +219,8 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	b[j] = division(b[j], pivot);
 
 	for(i=j+1; i<N; i++) {
-		idx = j+i*N;
-		idx_top = j+j*N;
+		idx = j + i * N;
+		idx_top = j + j * N;
 		multiplier = A[idx];
 		b[i] = b[i] - mult(multiplier, b[j]);
 		A[idx] = 0;
@@ -244,7 +249,7 @@ static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
 		return -ENOMEM;
 
 	A = copy_space;
-	b = copy_space+N*N;
+	b = copy_space + N * N;
 
 	/* Copy A and b matrices, otherwise original data will be lost*/
 	for(idx=0; idx<N*N; idx++) {
@@ -263,7 +268,7 @@ static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
 	/* back-substitution */
 	for(j=N-1; j>=0; j--) {
 		for(i=j-1; i>=0; i--) {
-			idx = j+i*N;
+			idx = j + i * N;
 			b[i] = b[i] - mult(A[idx], b[j]);
 			A[idx] = 0;
 		}
@@ -278,8 +283,6 @@ out_free_buffers:
 }
 
 /* Linear solver end */
-
-
 
 /* Controller */
 
@@ -325,14 +328,14 @@ void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 	int i, j;
 	for(i=0; i<deg; i++)
 		params_filtered[i] = 0;
-	dbs_info->filt_params.idx +=1;
+	dbs_info->filt_params.idx += 1;
 	if(dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
 		dbs_info->filt_params.idx = 0;
 	for(i=0; i<(deg); i++)
 		dbs_info->filt_params.buf[dbs_info->filt_params.idx+i*PARAMS_FILTER_LENGTH] = params[i];
 
 	for(i=0; i<PARAMS_FILTER_LENGTH; i++) {
-		for(j=0; j<(deg);j++) {
+		for(j=0; j<(deg); j++) {
 			params_filtered[j] += dbs_info->filt_params.buf[i+j*PARAMS_FILTER_LENGTH];
 		}
 	}
@@ -410,11 +413,11 @@ static void conditionally_update_theta(int64_t phi_P_phi, int64_t *theta,
 	int i = 0;
 	int64_t kappa = 0;
 
-	if(phi_P_phi>FP(1000))
+	if(phi_P_phi > FP(1000))
 		kappa = 1;
 	if(kappa)
 		for(i=0; i<deg; i++)
-			theta[i] = theta[i] + mult(K[i], epsilon);
+			theta[i] += mult(K[i], epsilon);
 }
 
 static void constant_trace_covariance_matrix(int64_t *P)
@@ -513,7 +516,7 @@ static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
 	int64_t Bm[d_Bminus+d_Bmd+1];
 	int64_t Am_sum = 0;
 	int64_t Bm_sum = 0;
-	int64_t beta=0;
+	int64_t beta = 0;
 	int i;
 
 	conv(Bminus, Bmd, Bm, d_Bminus+1, d_Bmd+1);
@@ -625,7 +628,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	if(load==100)
 		load_counter++;
 	else
-		load_counter=0;
+		load_counter = 0;
 	if(load_counter == 5)
 		v = 2710000;
 
