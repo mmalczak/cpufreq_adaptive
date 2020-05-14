@@ -14,9 +14,6 @@
 
 #include "cpufreq_adaptive.h"
 
-/* In-kernel memory allocation */
-#include <linux/slab.h>
-
 #include <linux/kernel.h>
 
 #if TELEMETRY
@@ -255,7 +252,7 @@ static inline void combine_observer_polynomial_and_modeled_dynamics(
 	conv(Ao, Am, c, d_Ao+1, d_Am+1);
 }
 
-static void fill_autoregresive_coeff(int64_t *M, int64_t *ARd, int i, int j)
+static void fill_autoregresive_coeff(int64_t *M, int N, int64_t *ARd, int i, int j)
 {
 	int idx = - j + i;
 	if((idx<0) || (idx>d_ARd))
@@ -264,7 +261,7 @@ static void fill_autoregresive_coeff(int64_t *M, int64_t *ARd, int i, int j)
 		M[i*N+j] = ARd[idx];
 }
 
-static void fill_moving_average_coeff(int64_t *M, int64_t *BminusSd, int i, int j)
+static void fill_moving_average_coeff(int64_t *M, int N, int64_t *BminusSd, int i, int j)
 {
 	int idx = - (j-(d_Rp+1)) + i - (d_Acl-(d_BminusSd+d_Sp));
 	if((idx<0) || (idx>d_BminusSd))
@@ -320,10 +317,11 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	int err = 0;
 	int i = 0;
 	int j = 0;
+	const int N = ((d_Rp+1)+(d_Sp+1));
 
-	int64_t M[N*N];
-	int64_t c[N];
-	int64_t temp[N];
+	int64_t *M = kzalloc(N*N*sizeof(int64_t), GFP_KERNEL);
+	int64_t *c = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
+	int64_t *temp = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
 	int64_t ARd[d_ARd+1];
 	int64_t BminusSd[d_BminusSd+1];
 	int64_t Rtemp[d_Rp + d_Rd + 1];
@@ -333,24 +331,28 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	for(i=0; i<N; i++) {
 		for(j=0; j<N; j++) {
 			if(j<d_Rp+1)
-				fill_autoregresive_coeff(M, ARd, i, j);
+				fill_autoregresive_coeff(M, N, ARd, i, j);
 			else
-				fill_moving_average_coeff(M, BminusSd, i, j);
+				fill_moving_average_coeff(M, N, BminusSd, i, j);
 		}
 	}
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
-	err = solve_linear_equation(M, c, temp);
+	err = solve_linear_equation(N, M, c, temp);
 	if(err==-1)
-		return err;
+		goto out_free_buffers;
 	conv(temp, tuners->Rd, Rtemp, d_Rp+1, d_Rd+1);
 	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus+1);
 	conv(&temp[d_Rp+1], tuners->Sd, poly->S, d_Sp+1, d_Sd+1);
 	err = normalise_controller_gain(tuners->Am, tuners->Ao, Bminus, Bmd,
 					poly->T);
 	if(err==-1)
-		return err;
+		goto out_free_buffers;
 	calculate_anti_windup_polynomial(poly->D, poly->R, tuners->Ao);
+out_free_buffers:
+	kfree(M);
+	kfree(c);
+	kfree(temp);
 	return err;
 }
 

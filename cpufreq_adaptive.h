@@ -16,6 +16,8 @@
 #include "cpufreq_governor.h"
 #include <linux/string.h>
 #include <linux/types.h>
+/* In-kernel memory allocation */
+#include <linux/slab.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -41,7 +43,6 @@
 #define d_Sp		(d_ARd-1)
 #define d_Rp		(d_BminusSd)
 #define d_Acl		(d_ARd+d_BminusSd)
-#define N		((d_Rp+1)+(d_Sp+1))
 
 #if d_Acl != d_Ao+d_Am
 #error
@@ -207,9 +208,9 @@ static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 
 /* Linear solver */
 
-static void swap_right_side_of_rows(int64_t *A, int i_1, int i_2, int j)
+static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 {
-	int64_t temp[N];
+	int64_t *temp = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
 	int idx;
 	int idx_2;
 	int k;
@@ -228,9 +229,10 @@ static void swap_right_side_of_rows(int64_t *A, int i_1, int i_2, int j)
 		A[idx] = temp[k];
 		idx++;
 	}
+	kfree(temp);
 }
 
-static int partial_pivoting(int64_t *A, int64_t *b, int j)
+static int partial_pivoting(int N, int64_t *A, int64_t *b, int j)
 {
 	int i = 0;
 	int64_t max = 0;
@@ -244,7 +246,7 @@ static int partial_pivoting(int64_t *A, int64_t *b, int j)
 		}
 	}
 	if(max>abs(A[j*(N+1)])) {
-		swap_right_side_of_rows(A, j, max_i, j);
+		swap_right_side_of_rows(N, A, j, max_i, j);
 		swap_vector_elements(b, j, max_i);
 	}
 	if(A[j*(N+1)]==0) {
@@ -254,7 +256,7 @@ static int partial_pivoting(int64_t *A, int64_t *b, int j)
 	return 0;
 }
 
-static void elimination_step(int64_t *A, int64_t *b, int j)
+static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 {
 	int64_t pivot;
 	int64_t multiplier = 0;
@@ -285,14 +287,14 @@ static void elimination_step(int64_t *A, int64_t *b, int j)
 	}
 }
 
-static int solve_linear_equation(int64_t *A_orig, int64_t *b_orig, int64_t *x)
+static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig, int64_t *x)
 {
 	int err = 0;
 	int i = 0;
 	int j = 0;
 	int idx = 0;
-	int64_t A[N*N];
-	int64_t b[N];
+	int64_t *A = kzalloc(N*N*sizeof(int64_t), GFP_KERNEL);
+	int64_t *b = kzalloc(N*sizeof(int64_t), GFP_KERNEL);
 
 	/* Copy A and b matrices, otherwise original data will be lost*/
 	for(idx=0; idx<N*N; idx++) {
@@ -303,10 +305,10 @@ static int solve_linear_equation(int64_t *A_orig, int64_t *b_orig, int64_t *x)
 	}
 	/* elimination */
 	for(j=0; j<N; j++) {
-		err = partial_pivoting(A, b, j);
+		err = partial_pivoting(N, A, b, j);
 		if(err==-1)
-			return err;
-		elimination_step(A, b, j);
+			goto out_free_buffers;
+		elimination_step(N, A, b, j);
 	}
 	/* back-substitution */
 	for(j=N-1; j>=0; j--) {
@@ -319,6 +321,10 @@ static int solve_linear_equation(int64_t *A_orig, int64_t *b_orig, int64_t *x)
 	for(idx=0; idx<N; idx++) {
 		x[idx] = b[idx];
 	}
+
+out_free_buffers:
+	kfree(A);
+	kfree(b);
 	return err;
 }
 
