@@ -202,7 +202,12 @@ static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 	v[pos_2] = temp;
 }
 
-static void swap_rows_to_right_side(int64_t *A, int i_1, int i_2, int j)
+
+/* Matrix operations end*/
+
+/* Linear solver */
+
+static void swap_right_side_of_rows(int64_t *A, int i_1, int i_2, int j)
 {
 	int64_t temp[N];
 	int idx;
@@ -224,9 +229,6 @@ static void swap_rows_to_right_side(int64_t *A, int i_1, int i_2, int j)
 		idx++;
 	}
 }
-/* Matrix operations end*/
-
-/* Linear solver */
 
 static int partial_pivoting(int64_t *A, int64_t *b, int j)
 {
@@ -242,7 +244,7 @@ static int partial_pivoting(int64_t *A, int64_t *b, int j)
 		}
 	}
 	if(max>abs(A[j*(N+1)])) {
-		swap_rows_to_right_side(A, j, max_i, j);
+		swap_right_side_of_rows(A, j, max_i, j);
 		swap_vector_elements(b, j, max_i);
 	}
 	if(A[j*(N+1)]==0) {
