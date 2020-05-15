@@ -441,10 +441,10 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 	int64_t epsilon;
 
 	for (i = 0; i < d_A; i++) {
-		phi[i] = -y_buf[(buf_idx + 1 + i)&(buf_length - 1)];
+		phi[i] = -y_buf[BUF_IDX_ADD(buf_idx, (i + 1))];
 	}
 	for (i = 0; i < d_B + 1; i++) {
-		phi[d_A + i] = u_buf[(buf_idx + i)&(buf_length - 1)];
+		phi[d_A + i] = u_buf[BUF_IDX_ADD(buf_idx, i)];
 	}
 	multiply_matrices(deg, 1, deg, P, phi, P_phi);
 	multiply_matrices(1, 1, deg, phi, P_phi, phi_P_phi);
