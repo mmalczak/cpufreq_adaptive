@@ -223,13 +223,13 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 		idx = j + i * N;
 		idx_top = j + j * N;
 		multiplier = A[idx];
-		b[i] = b[i] - mult(multiplier, b[j]);
+		b[i] -= mult(multiplier, b[j]);
 		A[idx] = 0;
 		for (k = j + 1; k < N; k++)
 		{
 			idx++;
 			idx_top++;
-			A[idx] = A[idx] - mult(multiplier, A[idx_top]);
+			A[idx] -= mult(multiplier, A[idx_top]);
 		}
 	}
 }
@@ -260,7 +260,7 @@ static int solve_linear_equation_inplace(int N, int64_t *A, int64_t *b,
 	for (j = N - 1; j >= 0; j--) {
 		for (i = j - 1; i >= 0; i--) {
 			idx = j + i * N;
-			b[i] = b[i] - mult(A[idx], b[j]);
+			b[i] -= mult(A[idx], b[j]);
 			A[idx] = 0;
 		}
 	}
