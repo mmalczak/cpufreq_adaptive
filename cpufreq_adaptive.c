@@ -233,7 +233,8 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	}
 }
 
-/* Solves a set of linear equations described by the matrix equation
+/*
+ * Solves a set of linear equations described by the matrix equation
  * Ab = x, where A is NxN matrix, b and x are vectors of length N.
  * The solver modifies the values of A and b. Therefore, if their values are
  * to be used afterwards, the copy of them has to be made before calling this
@@ -370,7 +371,8 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 						tuners, &(dbs_info->poly));
 	if(dbs_info->err==-1)
 		return dbs_info->buf.u[dbs_info->buf.idx];
-	/* Rv=T*uc−S*y+D(v-u)
+	/*
+	 * Rv=T*uc−S*y+D(v-u)
 	 * with anti_windup(with assumption that R and Ao are monic)
 	 */
 	v = 0;
@@ -694,7 +696,8 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 	int fractional;
 	int precision = 3;
 	int64_t round = FP(0.999);
-	/* Since we are working on fixed point arythmetics, the rounding does
+	/*
+	 * Since we are working on fixed point arythmetics, the rounding does
 	 * not work as expected. Division by the number a little less, but
 	 * close to 1 gives expected results in rounding
 	 */
