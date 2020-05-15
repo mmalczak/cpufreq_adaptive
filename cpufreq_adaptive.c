@@ -47,7 +47,7 @@ static void tlmsrv_exit(void);
 
 /* Fixed point arythmetics */
 
-static inline int64_t mult(int64_t a, int64_t b)
+static inline int64_t mult(const int64_t a, const int64_t b)
 {
 	int64_t a_h = a>>(POINT_POS / 2);
 	int64_t a_l = a-(a_h<<(POINT_POS / 2));
@@ -77,7 +77,7 @@ static inline int64_t division(int64_t a, int64_t b)
 /* Fixed point arythmetics end */
 
 /* Maths */
-static inline int pow_10(int l)
+static inline int pow_10(const int l)
 {
 	int i;
 	int ret = 1;
@@ -86,7 +86,8 @@ static inline int pow_10(int l)
 	return ret;
 }
 
-static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
+static void conv(const int64_t *a, const int64_t *b,int64_t *c, const int a_l,
+		const int b_l)
 {
 	int i = 0;
 	int j = 0;
@@ -109,7 +110,8 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 /* Maths end*/
 
 /* Matrix operations */
-static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
+static inline int64_t dot_product(const int N, const int64_t *a,
+					const int64_t *b)
 {
 	int i = 0;
 	int64_t y = 0;
@@ -127,8 +129,8 @@ static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
  * A, B - input matrices
  * C - output matrix
  */
-static void multiply_matrices(int M, int N, int K,
-				int64_t *A, int64_t *B, int64_t *C)
+static void multiply_matrices(const int M, const int N, const int K,
+				const int64_t *A, const int64_t *B, int64_t *C)
 {
 	int i = 0;
 	int row = 0;
@@ -154,7 +156,8 @@ static void multiply_matrices(int M, int N, int K,
 
 /* Linear solver */
 
-static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
+static inline void swap_vector_elements(int64_t *v, const int pos_1,
+					const int pos_2)
 {
 	int64_t temp;
 	temp = v[pos_1];
@@ -162,7 +165,8 @@ static inline void swap_vector_elements(int64_t *v, int pos_1, int pos_2)
 	v[pos_2] = temp;
 }
 
-static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
+static void swap_right_side_of_rows(const int N, int64_t *A, const int i_1,
+					const int i_2, const int j)
 {
 	int64_t temp;
 	int idx;
@@ -179,7 +183,7 @@ static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 	}
 }
 
-static int partial_pivoting(int N, int64_t *A, int64_t *b, int j)
+static int partial_pivoting(const int N, int64_t *A, int64_t *b, const int j)
 {
 	int i = 0;
 	int64_t max = 0;
@@ -203,7 +207,7 @@ static int partial_pivoting(int N, int64_t *A, int64_t *b, int j)
 	return 0;
 }
 
-static void elimination_step(int N, int64_t *A, int64_t *b, int j)
+static void elimination_step(const int N, int64_t *A, int64_t *b, const int j)
 {
 	int64_t pivot;
 	int64_t multiplier = 0;
@@ -241,7 +245,7 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
  * to be used afterwards, the copy of them has to be made before calling this
  * function
  */
-static int solve_linear_equation_inplace(int N, int64_t *A, int64_t *b,
+static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 					int64_t *x)
 {
 	int err = 0;
@@ -277,7 +281,8 @@ static int solve_linear_equation_inplace(int N, int64_t *A, int64_t *b,
 void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 			int64_t *y_buf, int64_t *u_buf, int buf_idx,
 			int64_t *phi_P_phi_);
-int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *Bmd,
+int controller_synthesis(const int64_t *A, const int64_t *Bplus,
+			const int64_t *Bminus, const int64_t *Bmd,
 			struct adaptive_dbs_tuners *tuners,
 			struct adaptive_controller_polynomials *poly);
 
@@ -336,8 +341,8 @@ void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 }
 
 int64_t regulate(struct adaptive_dbs_tuners *tuners,
-		struct adaptive_policy_dbs_info *dbs_info, int64_t y, int64_t u,
-		int64_t uc)
+		struct adaptive_policy_dbs_info *dbs_info, const int64_t y,
+		const int64_t u, const int64_t uc)
 {
 	int i;
 	int64_t v;
@@ -398,8 +403,8 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 	return v;
 }
 
-static void conditionally_update_theta(int64_t phi_P_phi, int64_t *theta,
-						int64_t *K, int64_t epsilon)
+static void conditionally_update_theta(const int64_t phi_P_phi, int64_t *theta,
+					const int64_t *K, const int64_t epsilon)
 {
 	int i = 0;
 	int64_t kappa = 0;
@@ -427,8 +432,8 @@ static void constant_trace_covariance_matrix(int64_t *P)
 	}
 }
 
-void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
-			int64_t *y_buf, int64_t *u_buf, int buf_idx,
+void update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
+			int64_t *y_buf, int64_t *u_buf, const int buf_idx,
 			int64_t *phi_P_phi_)
 {
 	int i;
@@ -469,20 +474,23 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 	constant_trace_covariance_matrix(P);
 }
 
-static void combine_model_and_custom_filters(int64_t *A, int64_t *Rd, int64_t *ARd,
-			int64_t *Bminus, int64_t *Sd, int64_t *BminusSd)
+static void combine_model_and_custom_filters(const int64_t *A,
+					const int64_t *Rd, int64_t *ARd,
+					const int64_t *Bminus,
+					const int64_t *Sd, int64_t *BminusSd)
 {
 	conv(A, Rd, ARd, d_A + 1, d_Rd + 1);
 	conv(Bminus, Sd, BminusSd, d_Bminus + 1, d_Sd + 1);
 }
 
 static inline void combine_observer_polynomial_and_modeled_dynamics(
-					int64_t *Ao, int64_t *Am, int64_t *c)
+			const int64_t *Ao, const int64_t *Am, int64_t *c)
 {
 	conv(Ao, Am, c, d_Ao + 1, d_Am + 1);
 }
 
-static void fill_autoregresive_coeff(int64_t *M, int N, int64_t *ARd, int i, int j)
+static void fill_autoregresive_coeff(int64_t *M, const int N,
+				const int64_t *ARd, const int i, const int j)
 {
 	int idx = - j + i;
 	if ((idx < 0) || (idx > d_ARd))
@@ -491,7 +499,8 @@ static void fill_autoregresive_coeff(int64_t *M, int N, int64_t *ARd, int i, int
 		M[i * N + j] = ARd[idx];
 }
 
-static void fill_moving_average_coeff(int64_t *M, int N, int64_t *BminusSd, int i, int j)
+static void fill_moving_average_coeff(int64_t *M, const int N,
+			const int64_t *BminusSd, const int i, const int j)
 {
 	int idx = - (j - (d_Rp + 1)) + i - (d_Acl - (d_BminusSd + d_Sp));
 	if ((idx < 0) || (idx > d_BminusSd))
@@ -500,8 +509,8 @@ static void fill_moving_average_coeff(int64_t *M, int N, int64_t *BminusSd, int 
 		M[i * N + j] = BminusSd[idx];
 }
 
-static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
-					int64_t *Bmd, int64_t *T)
+static int normalise_controller_gain(const int64_t *Am, const int64_t *Ao,
+			const int64_t *Bminus, const int64_t *Bmd, int64_t *T)
 {
 	int64_t BmdAo[d_Bmd + d_Ao + 1];
 	int64_t Bm[d_Bminus+d_Bmd + 1];
@@ -526,7 +535,8 @@ static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
 
 }
 
-static void calculate_anti_windup_polynomial(int64_t *D, int64_t *R, int64_t *Ao)
+static void calculate_anti_windup_polynomial(int64_t *D, const int64_t *R,
+					const int64_t *Ao)
 {
 	int i;
 	for (i = 0; i <= d_D; i++) {
@@ -540,7 +550,8 @@ static void calculate_anti_windup_polynomial(int64_t *D, int64_t *R, int64_t *Ao
 	}
 }
 
-int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *Bmd,
+int controller_synthesis(const int64_t *A, const int64_t *Bplus,
+			const int64_t *Bminus, const int64_t *Bmd,
 			struct adaptive_dbs_tuners *tuners,
 			struct adaptive_controller_polynomials *poly)
 {
