@@ -620,7 +620,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	else
 		load_counter = 0;
 	if (load_counter == 5)
-		v = 2710000;
+		v = policy->max;
 
 #if TELEMETRY
 	sample.u_prev = u;
