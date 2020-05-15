@@ -92,7 +92,8 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 	int j = 0;
 	int l = 0;
 	int up = 0;
-	for (i = 0; i < a_l + b_l - 1; i++) {
+	int out_l = a_l + b_l -1;
+	for (i = 0; i < out_l; i++) {
 		c[i] = 0;
 		up = i;
 		if (up > (a_l - 1))
