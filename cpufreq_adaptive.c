@@ -64,10 +64,10 @@ static inline int64_t division(int64_t a, int64_t b)
 {
 	int64_t c = 0;
 	int counter = 0;
-	while(abs(a)<((int64_t)1<<(62))) {
+	while (abs(a) < ((int64_t)1<<(62))) {
 		a = a<<1;
 		counter += 1;
-		if(counter==POINT_POS)
+		if(counter == POINT_POS)
 			break;
 	}
 	c = a / (b) * ((int64_t)1<<(POINT_POS - counter));
@@ -81,7 +81,7 @@ static inline int pow_10(int l)
 {
 	int i;
 	int ret = 1;
-	for(i=0; i<l; i++)
+	for (i = 0; i < l; i++)
 		ret *= 10;
 	return ret;
 }
@@ -92,16 +92,16 @@ static void conv(int64_t *a, int64_t *b,int64_t *c, int a_l, int b_l)
 	int j = 0;
 	int l = 0;
 	int up = 0;
-	for(i=0; i<a_l+b_l-1; i++) {
+	for (i = 0; i < a_l + b_l - 1; i++) {
 		c[i] = 0;
 		up = i;
-		if(up>(a_l - 1))
-			up=(a_l - 1);
+		if (up > (a_l - 1))
+			up = (a_l - 1);
 		l = i - (b_l - 1);
-		if(l < 0)
+		if (l < 0)
 			l = 0;
-		for(j=up; j>=l; j--) {
-			c[i] += mult(a[j], b[i-j]);
+		for (j = up; j >= l; j--) {
+			c[i] += mult(a[j], b[i - j]);
 		}
 	}
 }
@@ -112,7 +112,7 @@ static inline int64_t dot_product(int N, int64_t *a, int64_t *b)
 {
 	int i = 0;
 	int64_t y = 0;
-	for(i=0; i<N; i++) {
+	for (i = 0; i < N; i++) {
 		y += mult(a[i], b[i]);
 	}
 	return y;
@@ -136,11 +136,11 @@ static void multiply_matrices(int M, int N, int K,
 	int B_idx = 0;
 	int C_idx = 0;
 	int64_t y = 0;
-	for(row=0; row<M; row++) {
-		for(col=0; col<N; col++) {
+	for (row = 0; row < M; row++) {
+		for (col = 0; col < N; col++) {
 			C_idx = col + row * N;
 			y = 0;
-			for(i=0; i<K; i++) {
+			for (i = 0; i < K; i++) {
 				A_idx = i + row * K;
 				B_idx = i * N + col;;
 				y += mult(A[A_idx], B[B_idx]);
@@ -169,7 +169,7 @@ static void swap_right_side_of_rows(int N, int64_t *A, int i_1, int i_2, int j)
 	int k;
 	idx = i_1 * N + j;
 	idx_2 = i_2 * N + j;
-	for(k=j; k<N; k++) {
+	for (k = j; k < N; k++) {
 		temp = A[idx];
 		A[idx] = A[idx_2];
 		A[idx_2] = temp;
@@ -184,18 +184,18 @@ static int partial_pivoting(int N, int64_t *A, int64_t *b, int j)
 	int64_t max = 0;
 	int max_i = 0;
 	int64_t temp = 0;
-	for(i=j+1; i<N; i++) {
-		temp = abs(A[i*N+j]);
-		if(temp>max) {
+	for (i = j + 1; i < N; i++) {
+		temp = abs(A[i * N + j]);
+		if (temp > max) {
 			max = temp;
 			max_i = i;
 		}
 	}
-	if(max>abs(A[j*(N+1)])) {
+	if (max > abs(A[j * (N + 1)])) {
 		swap_right_side_of_rows(N, A, j, max_i, j);
 		swap_vector_elements(b, j, max_i);
 	}
-	if(A[j*(N+1)]==0) {
+	if (A[j * (N + 1)] == 0) {
 		printk("ERROR, pivot == 0 \n");
 		return -1;
 	}
@@ -212,19 +212,19 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	int k = 0;
 	idx = j * (N + 1);
 	pivot = A[idx];
-	for(k=j; k<N; k++) {
+	for (k = j; k < N; k++) {
 		A[idx] = division(A[idx], pivot);
 		idx++;
 	}
 	b[j] = division(b[j], pivot);
 
-	for(i=j+1; i<N; i++) {
+	for (i = j + 1; i < N; i++) {
 		idx = j + i * N;
 		idx_top = j + j * N;
 		multiplier = A[idx];
 		b[i] = b[i] - mult(multiplier, b[j]);
 		A[idx] = 0;
-		for(k=j+1; k<N; k++)
+		for (k = j + 1; k < N; k++)
 		{
 			idx++;
 			idx_top++;
@@ -249,21 +249,21 @@ static int solve_linear_equation_inplace(int N, int64_t *A, int64_t *b,
 	int idx = 0;
 
 	/* elimination */
-	for(j=0; j<N; j++) {
+	for (j = 0; j < N; j++) {
 		err = partial_pivoting(N, A, b, j);
-		if(err==-1)
+		if (err == -1)
 			return err;
 		elimination_step(N, A, b, j);
 	}
 	/* back-substitution */
-	for(j=N-1; j>=0; j--) {
-		for(i=j-1; i>=0; i--) {
+	for (j = N - 1; j >= 0; j--) {
+		for (i = j - 1; i >= 0; i--) {
 			idx = j + i * N;
 			b[i] = b[i] - mult(A[idx], b[j]);
 			A[idx] = 0;
 		}
 	}
-	for(idx=0; idx<N; idx++) {
+	for (idx = 0; idx < N; idx++) {
 		x[idx] = b[idx];
 	}
 	return err;
@@ -293,16 +293,16 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
 	memset(&(dbs_info->filt_params), 0, sizeof(struct filter_params));
 
-	for(i=0; i<deg; i++) {
-		for(j=0; j<deg; j++) {
-			if(j==i)
-				dbs_info->est_params.P[i*deg+j] = FP(100);
+	for (i = 0; i < deg; i++) {
+		for (j = 0; j < deg; j++) {
+			if (j == i)
+				dbs_info->est_params.P[i * deg + j] = FP(100);
 			else
-				dbs_info->est_params.P[i*deg+j] = FP(0);
+				dbs_info->est_params.P[i * deg + j] = FP(0);
 		}
 	}
-	for(i=0; i<deg; i++) {
-		if(i<d_A)
+	for (i = 0; i < deg; i++) {
+		if (i < d_A)
 			dbs_info->est_params.theta[i] = FP(0.1);
 		else
 			dbs_info->est_params.theta[i] = FP(0.1);
@@ -313,20 +313,20 @@ void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 					int64_t *params_filtered)
 {
 	int i, j;
-	for(i=0; i<deg; i++)
+	for (i = 0; i < deg; i++)
 		params_filtered[i] = 0;
 	dbs_info->filt_params.idx += 1;
-	if(dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
+	if (dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
 		dbs_info->filt_params.idx = 0;
-	for(i=0; i<(deg); i++)
-		dbs_info->filt_params.buf[dbs_info->filt_params.idx+i*PARAMS_FILTER_LENGTH] = params[i];
+	for (i = 0; i < (deg); i++)
+		dbs_info->filt_params.buf[dbs_info->filt_params.idx + i * PARAMS_FILTER_LENGTH] = params[i];
 
-	for(i=0; i<PARAMS_FILTER_LENGTH; i++) {
-		for(j=0; j<(deg); j++) {
-			params_filtered[j] += dbs_info->filt_params.buf[i+j*PARAMS_FILTER_LENGTH];
+	for (i = 0; i < PARAMS_FILTER_LENGTH; i++) {
+		for (j = 0; j < (deg); j++) {
+			params_filtered[j] += dbs_info->filt_params.buf[i + j * PARAMS_FILTER_LENGTH];
 		}
 	}
-	for(i=0; i<(deg); i++) {
+	for (i = 0; i < (deg); i++) {
 		params_filtered[i] = params_filtered[i] / PARAMS_FILTER_LENGTH;
 	}
 
@@ -339,10 +339,10 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 	int i;
 	int64_t v;
 
-	int64_t Bplus[d_Bplus+1] = {FP(1.0)};
-	int64_t Bmd[d_Bmd+1] = {FP(1.0)};
-	int64_t A[d_A+1];
-	int64_t Bminus[d_Bminus+1];
+	int64_t Bplus[d_Bplus + 1] = {FP(1.0)};
+	int64_t Bmd[d_Bmd + 1] = {FP(1.0)};
+	int64_t A[d_A + 1];
+	int64_t Bminus[d_Bminus + 1];
 
 	// Update buffers
 	dbs_info->buf.idx = BUF_IDX_ADD(dbs_info->buf.idx, -1);
@@ -353,42 +353,42 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 	update_estimation(dbs_info->est_params.theta,
 		dbs_info->est_params.P, tuners->lambda, dbs_info->buf.y,
 		dbs_info->buf.u, dbs_info->buf.idx, &(dbs_info->phi_P_phi));
-	for(i=0; i<deg; i++) {
-		if(dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
+	for (i = 0; i < deg; i++) {
+		if (dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
 			dbs_info->est_params.theta[i] = tuners->theta_limit_up[i];
-		else if(dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
+		else if (dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
 			dbs_info->est_params.theta[i] = tuners->theta_limit_down[i];
 	}
 	filter_params(dbs_info, dbs_info->est_params.theta,
 			dbs_info->est_params.theta_out);
 
 	A[0] = FP(1.0);
-	for(i=0; i<d_A; i++)
-		A[1+i] = dbs_info->est_params.theta_out[i];
-	for(i=0; i<d_B+1; i++)
-		Bminus[i] = dbs_info->est_params.theta_out[d_A+i];
+	for (i = 0; i < d_A; i++)
+		A[1 + i] = dbs_info->est_params.theta_out[i];
+	for (i = 0; i < d_B + 1; i++)
+		Bminus[i] = dbs_info->est_params.theta_out[d_A + i];
 	dbs_info->err = controller_synthesis(A, Bplus, Bminus, Bmd,
 						tuners, &(dbs_info->poly));
-	if(dbs_info->err==-1)
+	if (dbs_info->err == -1)
 		return dbs_info->buf.u[dbs_info->buf.idx];
 	/*
 	 * Rv=T*uc−S*y+D(v-u)
 	 * with anti_windup(with assumption that R and Ao are monic)
 	 */
 	v = 0;
-	for(i=1; i<d_R+1; i++)
+	for (i = 1; i < d_R+1; i++)
 		v = v - mult(dbs_info->poly.R[i],
 				dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
-	for(i=0; i<d_S+1; i++)
+	for (i = 0; i < d_S + 1; i++)
 		v = v - mult(dbs_info->poly.S[i],
 				dbs_info->buf.y[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
-	for(i=0; i<d_T+1; i++) {
+	for (i = 0; i < d_T + 1; i++) {
 		v = v + mult(dbs_info->poly.T[i],
 				dbs_info->buf.uc[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
 	}
-	for(i=0; i<d_D; i++) {
-		v = v + mult(dbs_info->poly.D[i+1],
-			(dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i+1)]-
+	for (i = 0; i < d_D; i++) {
+		v = v + mult(dbs_info->poly.D[i + 1],
+			(dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i + 1)]-
 			dbs_info->buf.u[BUF_IDX_ADD(dbs_info->buf.idx, i)]));
 	}
 	dbs_info->buf.v[dbs_info->buf.idx] = v;
@@ -404,7 +404,7 @@ static void conditionally_update_theta(int64_t phi_P_phi, int64_t *theta,
 	if(phi_P_phi > FP(1000))
 		kappa = 1;
 	if(kappa)
-		for(i=0; i<deg; i++)
+		for (i = 0; i < deg; i++)
 			theta[i] += mult(K[i], epsilon);
 }
 
@@ -412,15 +412,15 @@ static void constant_trace_covariance_matrix(int64_t *P)
 {
 	int i = 0;
 	int64_t trace = 0;
-	for(i=0; i<deg; i++) {
-		trace += P[i*(deg+1)];
+	for (i = 0; i < deg; i++) {
+		trace += P[i * (deg + 1)];
 	}
-	for(i=0; i<deg*deg; i++) {
+	for (i = 0; i < deg * deg; i++) {
 		P[i] = division(P[i], trace);
 		P[i] /= 1000;
 	}
-	for(i=0; i<deg; i++) {
-		P[i*(deg+1)] = P[i*(deg+1)] + FP(1)/(d_A+d_B+1);
+	for (i = 0; i < deg; i++) {
+		P[i * (deg + 1)] = P[i * (deg + 1)] + FP(1)/(d_A + d_B + 1);
 	}
 }
 
@@ -438,11 +438,11 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 	int64_t K_denominator;
 	int64_t epsilon;
 
-	for(i=0; i<d_A; i++) {
-		phi[i] = -y_buf[(buf_idx+1+i)&(buf_length-1)];
+	for (i = 0; i < d_A; i++) {
+		phi[i] = -y_buf[(buf_idx + 1 + i)&(buf_length - 1)];
 	}
-	for(i=0; i<d_B+1; i++) {
-		phi[d_A+i] = u_buf[(buf_idx+i)&(buf_length-1)];
+	for (i = 0; i < d_B + 1; i++) {
+		phi[d_A + i] = u_buf[(buf_idx + i)&(buf_length - 1)];
 	}
 	multiply_matrices(deg, 1, deg, P, phi, P_phi);
 	multiply_matrices(1, 1, deg, phi, P_phi, phi_P_phi);
@@ -459,7 +459,7 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 
 	multiply_matrices(deg, deg, 1, K, phi, K_phi);
 	multiply_matrices(deg, deg, deg, K_phi, P, K_phi_P);
-	for(i=0; i<deg*deg; i++) {
+	for (i = 0; i < deg * deg; i++) {
 		P[i] = P[i] - K_phi_P[i];
 		P[i] = division(P[i], lambda);
 	}
@@ -469,55 +469,55 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 static void combine_model_and_custom_filters(int64_t *A, int64_t *Rd, int64_t *ARd,
 			int64_t *Bminus, int64_t *Sd, int64_t *BminusSd)
 {
-	conv(A, Rd, ARd, d_A+1, d_Rd+1);
-	conv(Bminus, Sd, BminusSd, d_Bminus+1, d_Sd+1);
+	conv(A, Rd, ARd, d_A + 1, d_Rd + 1);
+	conv(Bminus, Sd, BminusSd, d_Bminus + 1, d_Sd + 1);
 }
 
 static inline void combine_observer_polynomial_and_modeled_dynamics(
 					int64_t *Ao, int64_t *Am, int64_t *c)
 {
-	conv(Ao, Am, c, d_Ao+1, d_Am+1);
+	conv(Ao, Am, c, d_Ao + 1, d_Am + 1);
 }
 
 static void fill_autoregresive_coeff(int64_t *M, int N, int64_t *ARd, int i, int j)
 {
 	int idx = - j + i;
-	if((idx<0) || (idx>d_ARd))
-		M[i*N+j] = 0;
+	if((idx < 0) || (idx > d_ARd))
+		M[i * N + j] = 0;
 	else
-		M[i*N+j] = ARd[idx];
+		M[i * N + j] = ARd[idx];
 }
 
 static void fill_moving_average_coeff(int64_t *M, int N, int64_t *BminusSd, int i, int j)
 {
-	int idx = - (j-(d_Rp+1)) + i - (d_Acl-(d_BminusSd+d_Sp));
-	if((idx<0) || (idx>d_BminusSd))
-		M[i*N+j] = 0;
+	int idx = - (j - (d_Rp + 1)) + i - (d_Acl - (d_BminusSd + d_Sp));
+	if ((idx < 0) || (idx > d_BminusSd))
+		M[i * N + j] = 0;
 	else
-		M[i*N+j] = BminusSd[idx];
+		M[i * N + j] = BminusSd[idx];
 }
 
 static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
 					int64_t *Bmd, int64_t *T)
 {
-	int64_t BmdAo[d_Bmd+d_Ao+1];
-	int64_t Bm[d_Bminus+d_Bmd+1];
+	int64_t BmdAo[d_Bmd + d_Ao + 1];
+	int64_t Bm[d_Bminus+d_Bmd + 1];
 	int64_t Am_sum = 0;
 	int64_t Bm_sum = 0;
 	int64_t beta = 0;
 	int i;
 
-	conv(Bminus, Bmd, Bm, d_Bminus+1, d_Bmd+1);
-	conv(Bmd, Ao, BmdAo, d_Bmd+1, d_Ao+1);
-	for(i=0; i<=d_Am; i++)
+	conv(Bminus, Bmd, Bm, d_Bminus + 1, d_Bmd + 1);
+	conv(Bmd, Ao, BmdAo, d_Bmd + 1, d_Ao + 1);
+	for (i = 0; i <= d_Am; i++)
 		Am_sum += Am[i];
-	for(i=0; i<=d_Bminus+d_Bmd; i++)
+	for (i = 0; i <= d_Bminus + d_Bmd; i++)
 		Bm_sum += Bm[i];
 	if(Bm_sum == 0)
 		return -1;
 	beta = division(Am_sum, Bm_sum);
 
-	for(i=0; i<=d_Bmd+d_Ao; i++)
+	for (i = 0; i <= d_Bmd + d_Ao; i++)
 		T[i] = mult(BmdAo[i], beta);
 	return 0;
 
@@ -526,13 +526,13 @@ static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
 static void calculate_anti_windup_polynomial(int64_t *D, int64_t *R, int64_t *Ao)
 {
 	int i;
-	for(i=0; i<=d_D; i++) {
-		if(i<=d_R)
+	for (i = 0; i <= d_D; i++) {
+		if (i <= d_R)
 			D[i] = R[i];
 		else
 			D[i] = 0;
 	}
-	for(i=0; i<=d_Ao; i++) {
+	for (i = 0; i <= d_Ao; i++) {
 		D[i] = D[i] - Ao[i];
 	}
 }
@@ -545,18 +545,18 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	int i = 0;
 	int j = 0;
 
-	int64_t M[d_M*d_M];
+	int64_t M[d_M * d_M];
 	int64_t c[d_M];
 	int64_t temp[d_M];
-	int64_t ARd[d_ARd+1];
-	int64_t BminusSd[d_BminusSd+1];
+	int64_t ARd[d_ARd + 1];
+	int64_t BminusSd[d_BminusSd + 1];
 	int64_t Rtemp[d_Rp + d_Rd + 1];
 
 	combine_model_and_custom_filters(A, tuners->Rd, ARd,
 					Bminus, tuners->Sd, BminusSd);
-	for(i=0; i<d_M; i++) {
-		for(j=0; j<d_M; j++) {
-			if(j<d_Rp+1)
+	for (i = 0; i < d_M; i++) {
+		for (j = 0; j < d_M; j++) {
+			if (j < d_Rp + 1)
 				fill_autoregresive_coeff(M, d_M, ARd, i, j);
 			else
 				fill_moving_average_coeff(M, d_M, BminusSd, i, j);
@@ -565,14 +565,14 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
 	err = solve_linear_equation_inplace(d_M, M, c, temp);
-	if(err!=0)
+	if (err != 0)
 		return err;;
-	conv(temp, tuners->Rd, Rtemp, d_Rp+1, d_Rd+1);
-	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus+1);
-	conv(&temp[d_Rp+1], tuners->Sd, poly->S, d_Sp+1, d_Sd+1);
+	conv(temp, tuners->Rd, Rtemp, d_Rp + 1, d_Rd + 1);
+	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus + 1);
+	conv(&temp[d_Rp + 1], tuners->Sd, poly->S, d_Sp + 1, d_Sd + 1);
 	err = normalise_controller_gain(tuners->Am, tuners->Ao, Bminus, Bmd,
 					poly->T);
-	if(err==-1)
+	if (err == -1)
 		return err;
 	calculate_anti_windup_polynomial(poly->D, poly->R, tuners->Ao);
 	return err;
@@ -602,7 +602,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 #endif
 
 	counter++;
-	if((counter/200)%2)
+	if ((counter / 200)%2)
 		uc = 60;
 	else
 		uc = 90;
@@ -613,11 +613,11 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	u = cpufreq_quick_get(0);
 	v = regulate(tuners, dbs_info, FP(load), FP(u)/scale, FP(uc))/FP(1);
 	v = v*scale;
-	if(load==100)
+	if (load == 100)
 		load_counter++;
 	else
 		load_counter = 0;
-	if(load_counter == 5)
+	if (load_counter == 5)
 		v = 2710000;
 
 #if TELEMETRY
@@ -625,26 +625,26 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	sample.v = v;
 	sample.load = load;
 	sample.uc = uc;
-	for(i=0; i<deg; i++)
+	for (i = 0; i < deg; i++)
 		sample.theta[i] = dbs_info->est_params.theta_out[i];
-	for(i=0; i<d_R+1; i++)
+	for (i = 0; i < d_R + 1; i++)
 		sample.R[i] = dbs_info->poly.R[i];
-	for(i=0; i<d_S+1; i++)
+	for (i = 0; i < d_S + 1; i++)
 		sample.S[i] = dbs_info->poly.S[i];
-	for(i=0; i<d_T+1; i++)
+	for (i = 0; i < d_T + 1; i++)
 		sample.T[i] = dbs_info->poly.T[i];
-	for(i=0; i<d_D+1; i++)
+	for (i = 0; i < d_D + 1; i++)
 		sample.D[i] = dbs_info->poly.D[i];
-	for(i=0; i<deg*deg; i++)
+	for (i = 0; i < deg * deg; i++)
 		sample.P[i] = dbs_info->est_params.P[i];
 	sample.phi_P_phi = dbs_info->phi_P_phi;
 
 	tlm_add_sample(&sample);
 #endif
 
-	if(dbs_info->err==-1)
+	if (dbs_info->err == -1)
 			restart_controller(dbs_info);
-	if(v<0)
+	if (v < 0)
 		freq_next = 0;
 	else
 		freq_next = (unsigned int)v;
@@ -667,26 +667,26 @@ static ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
 	int fractional = 0;
 	int len = 0;
 	*value = 0;
-	if(buf[*buf_idx]=='-') {
+	if (buf[*buf_idx] == '-') {
 		negative = 1;
 		(*buf_idx)++;
 	}
 	ret = sscanf(buf+*buf_idx, "%d%n", &decimal, &len);
-	if(ret!=1)
+	if (ret != 1)
 		return -EINVAL;
 	*value += FP(decimal);
 	*buf_idx += len;
-	if(buf[*buf_idx] == '.' || buf[*buf_idx] == ',') {
+	if (buf[*buf_idx] == '.' || buf[*buf_idx] == ',') {
 		(*buf_idx)++;
 		ret = sscanf(buf+*buf_idx, "%d%n", &fractional, &len);
 		*buf_idx += len;
-		if(ret!=1)
+		if (ret != 1)
 			return -EINVAL;
 		*value += FP(fractional)/pow_10(len);
 	}
 
-	if(negative)
-		*value = -1*(*value);
+	if (negative)
+		*value = -1 * (*value);
 	return ret;
 }
 
@@ -702,10 +702,10 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 	 * close to 1 gives expected results in rounding
 	 */
 
-	decimal = value/FP(1);
-	value -= decimal*FP(1);
+	decimal = value / FP(1);
+	value -= decimal * FP(1);
 	value *= pow_10(precision);
-	fractional = value/round;
+	fractional = value / round;
 	return sprintf(buf, "%d.%0*d%c", decimal, precision, abs(fractional),
 			end_char);
 }
@@ -742,18 +742,18 @@ static ssize_t store_lambda(struct gov_attr_set *attr_set, const char *buf,
 
 gov_store_vector_adaptive(theta_limit_up, deg);
 gov_store_vector_adaptive(theta_limit_down, deg);
-gov_store_vector_adaptive(Ao, (d_Ao+1));
-gov_store_vector_adaptive(Am, (d_Am+1));
-gov_store_vector_adaptive(Rd, (d_Rd+1));
-gov_store_vector_adaptive(Sd, (d_Sd+1));
+gov_store_vector_adaptive(Ao, (d_Ao + 1));
+gov_store_vector_adaptive(Am, (d_Am + 1));
+gov_store_vector_adaptive(Rd, (d_Rd + 1));
+gov_store_vector_adaptive(Sd, (d_Sd + 1));
 
 gov_show_one_adaptive(lambda);
 gov_show_vector_adaptive(theta_limit_up, deg);
 gov_show_vector_adaptive(theta_limit_down, deg);
-gov_show_vector_adaptive(Ao, d_Ao+1);
-gov_show_vector_adaptive(Am, d_Am+1);
-gov_show_vector_adaptive(Rd, d_Rd+1);
-gov_show_vector_adaptive(Sd, d_Sd+1);
+gov_show_vector_adaptive(Ao, d_Ao + 1);
+gov_show_vector_adaptive(Am, d_Am + 1);
+gov_show_vector_adaptive(Rd, d_Rd + 1);
+gov_show_vector_adaptive(Sd, d_Sd + 1);
 
 gov_attr_rw(lambda);
 gov_attr_rw(theta_limit_up);
