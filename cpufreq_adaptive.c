@@ -67,7 +67,7 @@ static inline int64_t division(int64_t a, int64_t b)
 	while (abs(a) < ((int64_t)1<<(62))) {
 		a = a<<1;
 		counter += 1;
-		if(counter == POINT_POS)
+		if (counter == POINT_POS)
 			break;
 	}
 	c = a / (b) * ((int64_t)1<<(POINT_POS - counter));
@@ -313,23 +313,25 @@ void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
 					int64_t *params_filtered)
 {
 	int i, j;
+	int idx;
 	for (i = 0; i < deg; i++)
 		params_filtered[i] = 0;
 	dbs_info->filt_params.idx += 1;
 	if (dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
 		dbs_info->filt_params.idx = 0;
-	for (i = 0; i < (deg); i++)
-		dbs_info->filt_params.buf[dbs_info->filt_params.idx + i * PARAMS_FILTER_LENGTH] = params[i];
-
+	for (i = 0; i < (deg); i++) {
+		idx = dbs_info->filt_params.idx + i * PARAMS_FILTER_LENGTH;
+		dbs_info->filt_params.buf[idx] = params[i];
+	}
 	for (i = 0; i < PARAMS_FILTER_LENGTH; i++) {
 		for (j = 0; j < (deg); j++) {
-			params_filtered[j] += dbs_info->filt_params.buf[i + j * PARAMS_FILTER_LENGTH];
+			idx = i + j * PARAMS_FILTER_LENGTH;
+			params_filtered[j] += dbs_info->filt_params.buf[idx];
 		}
 	}
 	for (i = 0; i < (deg); i++) {
 		params_filtered[i] = params_filtered[i] / PARAMS_FILTER_LENGTH;
 	}
-
 }
 
 int64_t regulate(struct adaptive_dbs_tuners *tuners,
@@ -401,9 +403,9 @@ static void conditionally_update_theta(int64_t phi_P_phi, int64_t *theta,
 	int i = 0;
 	int64_t kappa = 0;
 
-	if(phi_P_phi > FP(1000))
+	if (phi_P_phi > FP(1000))
 		kappa = 1;
-	if(kappa)
+	if (kappa)
 		for (i = 0; i < deg; i++)
 			theta[i] += mult(K[i], epsilon);
 }
@@ -449,7 +451,7 @@ void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 	*phi_P_phi_ = phi_P_phi[0];
 	K_denominator = lambda + phi_P_phi[0];
 
-	for(i=0; i<deg; i++) {
+	for (i = 0; i < deg; i++) {
 		K[i] = division(P_phi[i], K_denominator);
 	}
 
@@ -482,7 +484,7 @@ static inline void combine_observer_polynomial_and_modeled_dynamics(
 static void fill_autoregresive_coeff(int64_t *M, int N, int64_t *ARd, int i, int j)
 {
 	int idx = - j + i;
-	if((idx < 0) || (idx > d_ARd))
+	if ((idx < 0) || (idx > d_ARd))
 		M[i * N + j] = 0;
 	else
 		M[i * N + j] = ARd[idx];
@@ -513,7 +515,7 @@ static int normalise_controller_gain(int64_t *Am, int64_t *Ao, int64_t *Bminus,
 		Am_sum += Am[i];
 	for (i = 0; i <= d_Bminus + d_Bmd; i++)
 		Bm_sum += Bm[i];
-	if(Bm_sum == 0)
+	if (Bm_sum == 0)
 		return -1;
 	beta = division(Am_sum, Bm_sum);
 
