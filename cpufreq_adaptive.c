@@ -233,36 +233,25 @@ static void elimination_step(int N, int64_t *A, int64_t *b, int j)
 	}
 }
 
-static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
-				int64_t *x)
+/* Solves a set of linear equations described by the matrix equation
+ * Ab = x, where A is NxN matrix, b and x are vectors of length N.
+ * The solver modifies the values of A and b. Therefore, if their values are
+ * to be used afterwards, the copy of them has to be made before calling this
+ * function
+ */
+static int solve_linear_equation_inplace(int N, int64_t *A, int64_t *b,
+					int64_t *x)
 {
 	int err = 0;
 	int i = 0;
 	int j = 0;
 	int idx = 0;
-	int64_t *copy_space;
-	int64_t *A;
-	int64_t *b;
 
-	copy_space = kzalloc((N+1)*N*sizeof(int64_t), GFP_KERNEL);
-	if(!copy_space)
-		return -ENOMEM;
-
-	A = copy_space;
-	b = copy_space + N * N;
-
-	/* Copy A and b matrices, otherwise original data will be lost*/
-	for(idx=0; idx<N*N; idx++) {
-		A[idx] = A_orig[idx];
-	}
-	for(idx=0; idx<N; idx++) {
-		b[idx] = b_orig[idx];
-	}
 	/* elimination */
 	for(j=0; j<N; j++) {
 		err = partial_pivoting(N, A, b, j);
 		if(err==-1)
-			goto out_free_buffers;
+			return err;
 		elimination_step(N, A, b, j);
 	}
 	/* back-substitution */
@@ -276,9 +265,6 @@ static int solve_linear_equation(int N, int64_t *A_orig, int64_t *b_orig,
 	for(idx=0; idx<N; idx++) {
 		x[idx] = b[idx];
 	}
-
-out_free_buffers:
-	kfree(copy_space);
 	return err;
 }
 
@@ -576,7 +562,7 @@ int controller_synthesis(int64_t *A, int64_t *Bplus, int64_t *Bminus, int64_t *B
 	}
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
-	err = solve_linear_equation(d_M, M, c, temp);
+	err = solve_linear_equation_inplace(d_M, M, c, temp);
 	if(err!=0)
 		return err;;
 	conv(temp, tuners->Rd, Rtemp, d_Rp+1, d_Rd+1);
