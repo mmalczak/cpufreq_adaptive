@@ -604,7 +604,6 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	unsigned int load = dbs_update(policy);
 
 	int u;
-	static int buf_idx = 0;
 	unsigned int freq_next;
 	static int load_counter = 0;
 	int64_t v;
@@ -612,8 +611,6 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 #if TELEMETRY
 	struct tlm_sample sample;
 #endif
-
-	buf_idx = BUF_IDX_ADD(buf_idx, 1);
 
 #define scale 20000
 	u = cpufreq_quick_get(0);
