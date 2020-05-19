@@ -151,6 +151,7 @@ static inline struct adaptive_policy_dbs_info *to_dbs_info(struct policy_dbs_inf
 
 struct adaptive_dbs_tuners {
 	int64_t lambda;
+	int64_t uc;
 	int64_t theta_limit_up[deg];
 	int64_t theta_limit_down[deg];
 	int64_t Ao[d_Ao + 1];

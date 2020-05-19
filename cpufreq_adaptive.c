@@ -603,8 +603,6 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 
 	unsigned int load = dbs_update(policy);
 
-	int64_t uc;
-	static uint64_t counter = 0;
 	int u;
 	static int buf_idx = 0;
 	unsigned int freq_next;
@@ -615,17 +613,11 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	struct tlm_sample sample;
 #endif
 
-	counter++;
-	if ((counter / 200)%2)
-		uc = 60;
-	else
-		uc = 90;
-
 	buf_idx = BUF_IDX_ADD(buf_idx, 1);
 
 #define scale 20000
 	u = cpufreq_quick_get(0);
-	v = regulate(tuners, dbs_info, FP(load), FP(u)/scale, FP(uc))/FP(1);
+	v = regulate(tuners, dbs_info, FP(load), FP(u)/scale, tuners->uc)/FP(1);
 	v = v*scale;
 	if (load == 100)
 		load_counter++;
@@ -638,7 +630,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	sample.u_prev = u;
 	sample.v = v;
 	sample.load = load;
-	sample.uc = uc;
+	sample.uc = tuners->uc;
 	for (i = 0; i < deg; i++)
 		sample.theta[i] = dbs_info->est_params.theta_out[i];
 	for (i = 0; i < d_R + 1; i++)
@@ -754,6 +746,27 @@ static ssize_t store_lambda(struct gov_attr_set *attr_set, const char *buf,
 	return count;
 }
 
+static ssize_t store_uc(struct gov_attr_set *attr_set, const char *buf,
+				size_t count)
+{
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);
+	struct adaptive_dbs_tuners *tuners = dbs_data->tuners;
+	int64_t input;
+	int ret;
+	int buf_idx=0;
+	ret = sscanf_fp(buf, &input, &buf_idx);
+
+	if (ret != 1) {
+		return -EINVAL;
+	}
+	if (input > FP(100) || input < FP(0)) {
+		return -EINVAL;
+	}
+	tuners->uc= input;
+
+	return count;
+}
+
 gov_store_vector_adaptive(theta_limit_up, deg);
 gov_store_vector_adaptive(theta_limit_down, deg);
 gov_store_vector_adaptive(Ao, (d_Ao + 1));
@@ -762,6 +775,7 @@ gov_store_vector_adaptive(Rd, (d_Rd + 1));
 gov_store_vector_adaptive(Sd, (d_Sd + 1));
 
 gov_show_one_adaptive(lambda);
+gov_show_one_adaptive(uc);
 gov_show_vector_adaptive(theta_limit_up, deg);
 gov_show_vector_adaptive(theta_limit_down, deg);
 gov_show_vector_adaptive(Ao, d_Ao + 1);
@@ -770,6 +784,7 @@ gov_show_vector_adaptive(Rd, d_Rd + 1);
 gov_show_vector_adaptive(Sd, d_Sd + 1);
 
 gov_attr_rw(lambda);
+gov_attr_rw(uc);
 gov_attr_rw(theta_limit_up);
 gov_attr_rw(theta_limit_down);
 gov_attr_rw(Ao);
@@ -781,6 +796,7 @@ static struct attribute *adaptive_attributes[] = {
 	&sampling_rate.attr,
 /* Specific parameters for cpufreq_adaptive */
 	&lambda.attr,
+	&uc.attr,
 	&theta_limit_up.attr,
 	&theta_limit_down.attr,
 	&Ao.attr,
@@ -808,6 +824,7 @@ static void adaptive_free(struct policy_dbs_info *policy_dbs)
 static void adaptive_dbs_tuners_init(struct adaptive_dbs_tuners *tuners)
 {
 	tuners->lambda = FP(0.99);
+	tuners->uc = FP(60);
 	tuners->theta_limit_up[0] = FP(-1);
 	tuners->theta_limit_up[1] = FP(1000);
 	tuners->theta_limit_up[2] = FP(-1);

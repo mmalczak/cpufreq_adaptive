@@ -40,8 +40,8 @@
 #include <linux/types.h>
 #endif
 
-#define __tlm_var_norm(var,fmt) {                                       \
-    printf("%s%" fmt, delimiter, (float)(sample->var)/((int64_t)1<<32)); \
+#define __tlm_var_norm(var) {                                       \
+    printf("%s%f", delimiter, (float)(sample->var)/((int64_t)1<<32)); \
 }
 
 #define __tlm_vector_norm(var,length) {                                         \
@@ -136,7 +136,7 @@ static inline void print_sample(struct tlm_sample *sample, char * delimiter, int
   __tlm_var(load, "u");
   __tlm_var(load_est, "d");
   if(long_ver) printf("\t");
-  __tlm_var(uc, "ld");
+  __tlm_var_norm(uc);
   __tlm_var(u_prev, "ld");
   __tlm_var(v, "ld");
   if(long_ver && (sample->v<10000000)) printf("\t");
@@ -146,7 +146,7 @@ static inline void print_sample(struct tlm_sample *sample, char * delimiter, int
   __tlm_vector_norm(T, d_T+1);
   __tlm_vector_norm(D, d_D+1);
   __tlm_vector_norm(P, deg*deg);
-  __tlm_var_norm(phi_P_phi, "f");
+  __tlm_var_norm(phi_P_phi);
   printf(";");
 }
 
