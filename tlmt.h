@@ -34,7 +34,7 @@
 #define deg (d_A+d_B+1)
 #endif
 
-#ifdef __user_space__
+#ifndef MODULE
 #include <stdint.h>
 #else
 #include <linux/types.h>
