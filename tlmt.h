@@ -17,21 +17,21 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #ifndef d_Ao
-#define d_Ao 2
-#define d_Am 3
-#define d_Rd 1
-#define d_Sd 1
-#define d_A 2
-#define d_B 1
+#define d_Ao 		(2)
+#define d_Am		(3)
+#define d_Rd		(1)
+#define d_Sd		(1)
+#define d_A		(2)
+#define d_B		(1)
 
-#define d_Bplus (0)
-#define d_Bmd (0)
-#define d_Bminus (d_B)
-#define d_R (d_Sd+d_Bminus+d_Rd+d_Bplus)
-#define d_S (d_A + d_Rd-1 + d_Sd)
-#define d_T (d_Bmd + d_Ao)
-#define d_D MAX(d_R, d_Ao)
-#define deg (d_A+d_B+1)
+#define d_Bplus		(0)
+#define d_Bmd		(0)
+#define d_Bminus	(d_B)
+#define d_R		(d_Sd + d_Bminus + d_Rd + d_Bplus)
+#define d_S		(d_A + d_Rd-1 + d_Sd)
+#define d_T		(d_Bmd + d_Ao)
+#define d_D		MAX(d_R, d_Ao)
+#define deg		(d_A + d_B + 1)
 #endif
 
 #ifndef MODULE
