@@ -40,8 +40,6 @@
 #include <linux/types.h>
 #endif
 
-
-
 #define TLM_BUFFER_SIZE 4096
 
 struct tlm_sample {
@@ -49,16 +47,13 @@ struct tlm_sample {
 	long long ts_sec;
 	long int ts_nsec;
 
-	// Insert your timeservies signals here. Pointer data types are prohibited.
 	int err;
 	unsigned int load;
 	int load_est;
 	int64_t uc;
 	int64_t u_prev;
 	int64_t v;
-	// Model vector
 	int64_t theta[deg];
-	// Controller polynomials
 	int64_t R[d_R+1];
 	int64_t S[d_S+1];
 	int64_t T[d_T+1];
@@ -89,24 +84,19 @@ const char *labelsDef[] = {
 
 static inline void tlm_var_norm(const int64_t var, const char *delimiter)
 {
-	printf("%s%f", delimiter, (float)(var)/((int64_t)1<<32));
+	printf("%f%s", (float)(var)/((int64_t)1<<32), delimiter);
 }
 
-
-static void tlm_var(const int64_t var, const char *delimiter, const int first_var)
+static void tlm_var(const int64_t var, const char *delimiter)
 {
-	if (first_var) {
-		printf("%ld", (int64_t)var);
-	} else
-		printf("%s%ld", delimiter, (int64_t)var);
+	printf("%ld%s", (int64_t)var, delimiter);
 }
-
 
 static void tlm_vector_norm(const int64_t *var, const int length,
 				const char *delimiter)
 {
 	int i;
-	printf("%s[", delimiter);
+	printf("[");
 	for(i=0; i<length; i++)
 	{
 		if(i<length-1)
@@ -114,7 +104,7 @@ static void tlm_vector_norm(const int64_t *var, const int length,
 		else
 			printf("%.3f", (float)(var[i])/((int64_t)1<<32));
 	}
-	printf("]");
+	printf("]%s", delimiter);
 }
 
 // Displaying timeseries data row to stdout
@@ -127,18 +117,14 @@ static void print_sample(struct tlm_sample *sample, char *delimiter, int long_ve
 	 */
 
 	int i;
-	/*
-	 * Macro __tlm_var(var, fmt) prints out single sample component.
-	 *  var - sample variable name
-	 *  fmt - printf format for the variable
-	 */
-	tlm_var(sample->err, delimiter, 1);
-	tlm_var(sample->load, delimiter, 0);
-	tlm_var(sample->load_est, delimiter, 0);
+
+	tlm_var(sample->err, delimiter);
+	tlm_var(sample->load, delimiter);
+	tlm_var(sample->load_est, delimiter);
 	if(long_ver) printf("\t");
 	tlm_var_norm(sample->uc, delimiter);
-	tlm_var(sample->u_prev, delimiter, 0);
-	tlm_var(sample->v, delimiter, 0);
+	tlm_var(sample->u_prev, delimiter);
+	tlm_var(sample->v, delimiter);
 	if(long_ver && (sample->v<10000000)) printf("\t");
 	tlm_vector_norm(sample->theta, deg, delimiter);
 	tlm_vector_norm(sample->R, d_R+1, delimiter);
@@ -147,7 +133,6 @@ static void print_sample(struct tlm_sample *sample, char *delimiter, int long_ve
 	tlm_vector_norm(sample->D, d_D+1, delimiter);
 	tlm_vector_norm(sample->P, deg*deg, delimiter);
 	tlm_var_norm(sample->phi_P_phi, delimiter);
-	printf(";");
 }
 
 #endif
