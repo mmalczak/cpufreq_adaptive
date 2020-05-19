@@ -87,7 +87,7 @@ static inline void tlm_var_norm(const int64_t var, const char *delimiter)
 	printf("%f%s", (float)(var)/((int64_t)1<<32), delimiter);
 }
 
-static void tlm_var(const int64_t var, const char *delimiter)
+static inline void tlm_var(const int64_t var, const char *delimiter)
 {
 	printf("%ld%s", (int64_t)var, delimiter);
 }
