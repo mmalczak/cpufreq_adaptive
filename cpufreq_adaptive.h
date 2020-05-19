@@ -11,6 +11,8 @@
  *
  */
 
+#ifndef CPUFREQ_ADAPTIVE_H
+#define CPUFREQ_ADAPTIVE_H
 
 #include "cpufreq_governor.h"
 #include <linux/string.h>
@@ -159,3 +161,5 @@ struct adaptive_dbs_tuners {
 	int64_t Rd[d_Rd + 1];
 	int64_t Sd[d_Sd + 1];
 };
+
+#endif
