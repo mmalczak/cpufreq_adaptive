@@ -40,30 +40,7 @@
 #include <linux/types.h>
 #endif
 
-#define __tlm_var_norm(var) {							\
-	printf("%s%f", delimiter, (float)(sample->var)/((int64_t)1<<32));	\
-}
 
-#define __tlm_vector_norm(var,length) {							\
-	printf("%s[", delimiter);							\
-	for(i=0; i<length; i++)								\
-	{										\
-		if(i<length-1)								\
-			printf("%.3f,", (float)(sample->var[i])/((int64_t)1<<32));	\
-		else									\
-			printf("%.3f", (float)(sample->var[i])/((int64_t)1<<32));	\
-	}										\
-	printf("]");									\
-}
-
-
-#define __tlm_var(var,fmt) {					\
-	if (first_var) {					\
-		first_var = 0;					\
-		printf("%" fmt, sample->var);			\
-	} else							\
-		printf("%s%" fmt, delimiter, sample->var);	\
-}
 
 #define TLM_BUFFER_SIZE 4096
 
@@ -110,8 +87,38 @@ const char *labelsDef[] = {
 // Only for user-space use
 #ifndef MODULE
 
+static inline void tlm_var_norm(const int64_t var, const char *delimiter)
+{
+	printf("%s%f", delimiter, (float)(var)/((int64_t)1<<32));
+}
+
+
+static void tlm_var(const int64_t var, const char *delimiter, const int first_var)
+{
+	if (first_var) {
+		printf("%ld", (int64_t)var);
+	} else
+		printf("%s%ld", delimiter, (int64_t)var);
+}
+
+
+static void tlm_vector_norm(const int64_t *var, const int length,
+				const char *delimiter)
+{
+	int i;
+	printf("%s[", delimiter);
+	for(i=0; i<length; i++)
+	{
+		if(i<length-1)
+			printf("%.3f,", (float)(var[i])/((int64_t)1<<32));
+		else
+			printf("%.3f", (float)(var[i])/((int64_t)1<<32));
+	}
+	printf("]");
+}
+
 // Displaying timeseries data row to stdout
-static inline void print_sample(struct tlm_sample *sample, char * delimiter, int long_ver)
+static void print_sample(struct tlm_sample *sample, char *delimiter, int long_ver)
 {
 	/*
 	 * This function needs to print out appropriately formatted sample data
@@ -119,29 +126,27 @@ static inline void print_sample(struct tlm_sample *sample, char * delimiter, int
 	 * labelsDef.
 	 */
 
-	// For the use of __tlm_var macro
-	unsigned int first_var = 1;
 	int i;
 	/*
 	 * Macro __tlm_var(var, fmt) prints out single sample component.
 	 *  var - sample variable name
 	 *  fmt - printf format for the variable
 	 */
-	__tlm_var(err, "d");
-	__tlm_var(load, "u");
-	__tlm_var(load_est, "d");
+	tlm_var(sample->err, delimiter, 1);
+	tlm_var(sample->load, delimiter, 0);
+	tlm_var(sample->load_est, delimiter, 0);
 	if(long_ver) printf("\t");
-	__tlm_var_norm(uc);
-	__tlm_var(u_prev, "ld");
-	__tlm_var(v, "ld");
+	tlm_var_norm(sample->uc, delimiter);
+	tlm_var(sample->u_prev, delimiter, 0);
+	tlm_var(sample->v, delimiter, 0);
 	if(long_ver && (sample->v<10000000)) printf("\t");
-	__tlm_vector_norm(theta, deg);
-	__tlm_vector_norm(R, d_R+1);
-	__tlm_vector_norm(S, d_S+1);
-	__tlm_vector_norm(T, d_T+1);
-	__tlm_vector_norm(D, d_D+1);
-	__tlm_vector_norm(P, deg*deg);
-	__tlm_var_norm(phi_P_phi);
+	tlm_vector_norm(sample->theta, deg, delimiter);
+	tlm_vector_norm(sample->R, d_R+1, delimiter);
+	tlm_vector_norm(sample->S, d_S+1, delimiter);
+	tlm_vector_norm(sample->T, d_T+1, delimiter);
+	tlm_vector_norm(sample->D, d_D+1, delimiter);
+	tlm_vector_norm(sample->P, deg*deg, delimiter);
+	tlm_var_norm(sample->phi_P_phi, delimiter);
 	printf(";");
 }
 
