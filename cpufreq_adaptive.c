@@ -276,141 +276,8 @@ static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 
 /* Linear solver end */
 
-/* Controller */
 
-static int update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
-			int64_t *y_buf, int64_t *u_buf, int buf_idx,
-			int64_t *phi_P_phi_);
-int controller_synthesis(const int64_t *A, const int64_t *Bplus,
-			const int64_t *Bminus, const int64_t *Bmd,
-			struct adaptive_dbs_tuners *tuners,
-			struct adaptive_controller_polynomials *poly);
-
-
-void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
-{
-	int i;
-	int j;
-
-	dbs_info->err = 0;
-	dbs_info->phi_P_phi = 0;
-	memset(&(dbs_info->est_params), 0, sizeof(struct adaptive_estimation_params));
-	memset(&(dbs_info->poly), 0, sizeof(struct adaptive_controller_polynomials));
-	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
-	memset(&(dbs_info->filt_params), 0, sizeof(struct filter_params));
-
-	for (i = 0; i < deg; i++) {
-		for (j = 0; j < deg; j++) {
-			if (j == i)
-				dbs_info->est_params.P[i * deg + j] = FP(100);
-			else
-				dbs_info->est_params.P[i * deg + j] = FP(0);
-		}
-	}
-	for (i = 0; i < deg; i++) {
-		if (i < d_A)
-			dbs_info->est_params.theta[i] = FP(0.1);
-		else
-			dbs_info->est_params.theta[i] = FP(0.1);
-	}
-}
-
-void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
-					int64_t *params_filtered)
-{
-	int i, j;
-	int idx;
-	for (i = 0; i < deg; i++)
-		params_filtered[i] = 0;
-	dbs_info->filt_params.idx += 1;
-	if (dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
-		dbs_info->filt_params.idx = 0;
-	for (i = 0; i < (deg); i++) {
-		idx = dbs_info->filt_params.idx + i * PARAMS_FILTER_LENGTH;
-		dbs_info->filt_params.buf[idx] = params[i];
-	}
-	for (i = 0; i < PARAMS_FILTER_LENGTH; i++) {
-		for (j = 0; j < (deg); j++) {
-			idx = i + j * PARAMS_FILTER_LENGTH;
-			params_filtered[j] += dbs_info->filt_params.buf[idx];
-		}
-	}
-	for (i = 0; i < (deg); i++) {
-		params_filtered[i] = params_filtered[i] / PARAMS_FILTER_LENGTH;
-	}
-}
-
-int64_t regulate(struct adaptive_dbs_tuners *tuners,
-		struct adaptive_policy_dbs_info *dbs_info, const int64_t y,
-		const int64_t u, const int64_t uc)
-{
-	int i;
-	int64_t v;
-
-	int64_t Bplus[d_Bplus + 1] = {FP(1.0)};
-	int64_t Bmd[d_Bmd + 1] = {FP(1.0)};
-	int64_t A[d_A + 1];
-	int64_t Bminus[d_Bminus + 1];
-
-	// Update buffers
-	dbs_info->buf.idx = BUF_IDX_ADD(dbs_info->buf.idx, -1);
-	dbs_info->buf.y[dbs_info->buf.idx] = y;
-	dbs_info->buf.u[dbs_info->buf.idx] = u;
-	dbs_info->buf.uc[dbs_info->buf.idx] = uc;
-
-	dbs_info->err = update_estimation(dbs_info->est_params.theta,
-		dbs_info->est_params.P, tuners->lambda, dbs_info->buf.y,
-		dbs_info->buf.u, dbs_info->buf.idx, &(dbs_info->phi_P_phi));
-	if (dbs_info->err)
-	{
-		pr_warn("Unable to update the estimator. The frequency will not be updated\n");
-		return dbs_info->buf.u[dbs_info->buf.idx];
-	}
-
-	for (i = 0; i < deg; i++) {
-		if (dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
-			dbs_info->est_params.theta[i] = tuners->theta_limit_up[i];
-		else if (dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
-			dbs_info->est_params.theta[i] = tuners->theta_limit_down[i];
-	}
-	filter_params(dbs_info, dbs_info->est_params.theta,
-			dbs_info->est_params.theta_out);
-
-	A[0] = FP(1.0);
-	for (i = 0; i < d_A; i++)
-		A[1 + i] = dbs_info->est_params.theta_out[i];
-	for (i = 0; i < d_B + 1; i++)
-		Bminus[i] = dbs_info->est_params.theta_out[d_A + i];
-	dbs_info->err = controller_synthesis(A, Bplus, Bminus, Bmd,
-						tuners, &(dbs_info->poly));
-	if (dbs_info->err)
-	{
-		pr_warn("Unable to synthesise controller. The frequency will not be updated\n");
-		return dbs_info->buf.u[dbs_info->buf.idx];
-	}
-	/*
-	 * Rv=T*uc−S*y+D(v-u)
-	 */
-	v = 0;
-	for (i = 1; i < d_R+1; i++)
-		v = v - mult(dbs_info->poly.R[i],
-				dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
-	for (i = 0; i < d_S + 1; i++)
-		v = v - mult(dbs_info->poly.S[i],
-				dbs_info->buf.y[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
-	for (i = 0; i < d_T + 1; i++) {
-		v = v + mult(dbs_info->poly.T[i],
-				dbs_info->buf.uc[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
-	}
-	for (i = 0; i < d_D; i++) {
-		v = v + mult(dbs_info->poly.D[i + 1],
-			(dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i + 1)]-
-			dbs_info->buf.u[BUF_IDX_ADD(dbs_info->buf.idx, i)]));
-	}
-	dbs_info->buf.v[dbs_info->buf.idx] = v;
-	return v;
-}
-
+/* Estimator */
 static void conditionally_update_theta(const int64_t phi_P_phi, int64_t *theta,
 					const int64_t *K, const int64_t epsilon)
 {
@@ -497,6 +364,9 @@ static int update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
 	return 0;
 }
 
+/* Estimator end */
+
+/* Controller */
 static void combine_model_and_custom_filters(const int64_t *A,
 					const int64_t *Rd, int64_t *ARd,
 					const int64_t *Bminus,
@@ -618,6 +488,132 @@ int controller_synthesis(const int64_t *A, const int64_t *Bplus,
 	return err;
 }
 
+
+
+void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
+{
+	int i;
+	int j;
+
+	dbs_info->err = 0;
+	dbs_info->phi_P_phi = 0;
+	memset(&(dbs_info->est_params), 0, sizeof(struct adaptive_estimation_params));
+	memset(&(dbs_info->poly), 0, sizeof(struct adaptive_controller_polynomials));
+	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
+	memset(&(dbs_info->filt_params), 0, sizeof(struct filter_params));
+
+	for (i = 0; i < deg; i++) {
+		for (j = 0; j < deg; j++) {
+			if (j == i)
+				dbs_info->est_params.P[i * deg + j] = FP(100);
+			else
+				dbs_info->est_params.P[i * deg + j] = FP(0);
+		}
+	}
+	for (i = 0; i < deg; i++) {
+		if (i < d_A)
+			dbs_info->est_params.theta[i] = FP(0.1);
+		else
+			dbs_info->est_params.theta[i] = FP(0.1);
+	}
+}
+
+void filter_params(struct adaptive_policy_dbs_info *dbs_info, int64_t *params,
+					int64_t *params_filtered)
+{
+	int i, j;
+	int idx;
+	for (i = 0; i < deg; i++)
+		params_filtered[i] = 0;
+	dbs_info->filt_params.idx += 1;
+	if (dbs_info->filt_params.idx == PARAMS_FILTER_LENGTH)
+		dbs_info->filt_params.idx = 0;
+	for (i = 0; i < (deg); i++) {
+		idx = dbs_info->filt_params.idx + i * PARAMS_FILTER_LENGTH;
+		dbs_info->filt_params.buf[idx] = params[i];
+	}
+	for (i = 0; i < PARAMS_FILTER_LENGTH; i++) {
+		for (j = 0; j < (deg); j++) {
+			idx = i + j * PARAMS_FILTER_LENGTH;
+			params_filtered[j] += dbs_info->filt_params.buf[idx];
+		}
+	}
+	for (i = 0; i < (deg); i++) {
+		params_filtered[i] = params_filtered[i] / PARAMS_FILTER_LENGTH;
+	}
+}
+
+int64_t calculate_control_signal(struct adaptive_dbs_tuners *tuners,
+		struct adaptive_policy_dbs_info *dbs_info, const int64_t y,
+		const int64_t u, const int64_t uc)
+{
+	int i;
+	int64_t v;
+
+	int64_t Bplus[d_Bplus + 1] = {FP(1.0)};
+	int64_t Bmd[d_Bmd + 1] = {FP(1.0)};
+	int64_t A[d_A + 1];
+	int64_t Bminus[d_Bminus + 1];
+
+	// Update buffers
+	dbs_info->buf.idx = BUF_IDX_ADD(dbs_info->buf.idx, -1);
+	dbs_info->buf.y[dbs_info->buf.idx] = y;
+	dbs_info->buf.u[dbs_info->buf.idx] = u;
+	dbs_info->buf.uc[dbs_info->buf.idx] = uc;
+
+	dbs_info->err = update_estimation(dbs_info->est_params.theta,
+		dbs_info->est_params.P, tuners->lambda, dbs_info->buf.y,
+		dbs_info->buf.u, dbs_info->buf.idx, &(dbs_info->phi_P_phi));
+	if (dbs_info->err)
+	{
+		pr_warn("Unable to update the estimator. The frequency will not be updated\n");
+		return dbs_info->buf.u[dbs_info->buf.idx];
+	}
+
+	for (i = 0; i < deg; i++) {
+		if (dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
+			dbs_info->est_params.theta[i] = tuners->theta_limit_up[i];
+		else if (dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
+			dbs_info->est_params.theta[i] = tuners->theta_limit_down[i];
+	}
+	filter_params(dbs_info, dbs_info->est_params.theta,
+			dbs_info->est_params.theta_out);
+
+	A[0] = FP(1.0);
+	for (i = 0; i < d_A; i++)
+		A[1 + i] = dbs_info->est_params.theta_out[i];
+	for (i = 0; i < d_B + 1; i++)
+		Bminus[i] = dbs_info->est_params.theta_out[d_A + i];
+	dbs_info->err = controller_synthesis(A, Bplus, Bminus, Bmd,
+						tuners, &(dbs_info->poly));
+	if (dbs_info->err)
+	{
+		pr_warn("Unable to synthesise controller. The frequency will not be updated\n");
+		return dbs_info->buf.u[dbs_info->buf.idx];
+	}
+	/*
+	 * Rv=T*uc−S*y+D(v-u)
+	 */
+	v = 0;
+	for (i = 1; i < d_R+1; i++)
+		v = v - mult(dbs_info->poly.R[i],
+				dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+	for (i = 0; i < d_S + 1; i++)
+		v = v - mult(dbs_info->poly.S[i],
+				dbs_info->buf.y[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+	for (i = 0; i < d_T + 1; i++) {
+		v = v + mult(dbs_info->poly.T[i],
+				dbs_info->buf.uc[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+	}
+	for (i = 0; i < d_D; i++) {
+		v = v + mult(dbs_info->poly.D[i + 1],
+			(dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i + 1)]-
+			dbs_info->buf.u[BUF_IDX_ADD(dbs_info->buf.idx, i)]));
+	}
+	dbs_info->buf.v[dbs_info->buf.idx] = v;
+	return v;
+}
+
 /* Controller end*/
 
 static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
@@ -640,8 +636,9 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 
 #define scale 20000
 	u = cpufreq_quick_get(0);
-	v = regulate(tuners, dbs_info, FP(load), FP(u)/scale, tuners->uc)/FP(1);
-	v = v*scale;
+	v = calculate_control_signal(tuners, dbs_info, FP(load), FP(u)/scale,
+					tuners->uc);
+	v = v/(FP(1)/scale);
 	if (load == 100)
 		load_counter++;
 	else
