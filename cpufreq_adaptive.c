@@ -201,8 +201,8 @@ static int partial_pivoting(const int N, int64_t *A, int64_t *b, const int j)
 		swap_vector_elements(b, j, max_i);
 	}
 	if (A[j * (N + 1)] == 0) {
-		printk("ERROR, pivot == 0 \n");
-		return -1;
+		pr_warn("Pivot in linear solver is equal to 0\n");
+		return -EDOM;
 	}
 	return 0;
 }
@@ -256,7 +256,7 @@ static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 	/* elimination */
 	for (j = 0; j < N; j++) {
 		err = partial_pivoting(N, A, b, j);
-		if (err == -1)
+		if (err)
 			return err;
 		elimination_step(N, A, b, j);
 	}
@@ -278,7 +278,7 @@ static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 
 /* Controller */
 
-void update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
+static int update_estimation(int64_t *theta, int64_t *P, int64_t lambda,
 			int64_t *y_buf, int64_t *u_buf, int buf_idx,
 			int64_t *phi_P_phi_);
 int controller_synthesis(const int64_t *A, const int64_t *Bplus,
@@ -358,9 +358,15 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 	dbs_info->buf.u[dbs_info->buf.idx] = u;
 	dbs_info->buf.uc[dbs_info->buf.idx] = uc;
 
-	update_estimation(dbs_info->est_params.theta,
+	dbs_info->err = update_estimation(dbs_info->est_params.theta,
 		dbs_info->est_params.P, tuners->lambda, dbs_info->buf.y,
 		dbs_info->buf.u, dbs_info->buf.idx, &(dbs_info->phi_P_phi));
+	if (dbs_info->err)
+	{
+		pr_warn("Unable to update the estimator. The frequency will not be updated\n");
+		return dbs_info->buf.u[dbs_info->buf.idx];
+	}
+
 	for (i = 0; i < deg; i++) {
 		if (dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
 			dbs_info->est_params.theta[i] = tuners->theta_limit_up[i];
@@ -377,11 +383,13 @@ int64_t regulate(struct adaptive_dbs_tuners *tuners,
 		Bminus[i] = dbs_info->est_params.theta_out[d_A + i];
 	dbs_info->err = controller_synthesis(A, Bplus, Bminus, Bmd,
 						tuners, &(dbs_info->poly));
-	if (dbs_info->err == -1)
+	if (dbs_info->err)
+	{
+		pr_warn("Unable to synthesise controller. The frequency will not be updated\n");
 		return dbs_info->buf.u[dbs_info->buf.idx];
+	}
 	/*
 	 * Rv=T*uc−S*y+D(v-u)
-	 * with anti_windup(with assumption that R and Ao are monic)
 	 */
 	v = 0;
 	for (i = 1; i < d_R+1; i++)
@@ -423,6 +431,11 @@ static void constant_trace_covariance_matrix(int64_t *P)
 	for (i = 0; i < deg; i++) {
 		trace += P[i * (deg + 1)];
 	}
+	if (trace == 0)
+	{
+		pr_warn("Trace is equal to 0\n");
+		return;
+	}
 	for (i = 0; i < deg * deg; i++) {
 		P[i] = division(P[i], trace);
 		P[i] /= 1000;
@@ -432,7 +445,7 @@ static void constant_trace_covariance_matrix(int64_t *P)
 	}
 }
 
-void update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
+static int update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
 			int64_t *y_buf, int64_t *u_buf, const int buf_idx,
 			int64_t *phi_P_phi_)
 {
@@ -456,7 +469,11 @@ void update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
 	multiply_matrices(1, 1, deg, phi, P_phi, phi_P_phi);
 	*phi_P_phi_ = phi_P_phi[0];
 	K_denominator = lambda + phi_P_phi[0];
-
+	if (K_denominator == 0)
+	{
+		pr_warn("Estimator denominator is equal to 0\n");
+		return -EDOM;
+	}
 	for (i = 0; i < deg; i++) {
 		K[i] = division(P_phi[i], K_denominator);
 	}
@@ -467,11 +484,17 @@ void update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
 
 	multiply_matrices(deg, deg, 1, K, phi, K_phi);
 	multiply_matrices(deg, deg, deg, K_phi, P, K_phi_P);
+	if (lambda == 0)
+	{
+		pr_err("Value of lambda is equal to 0\n");
+		return -EIO;
+	}
 	for (i = 0; i < deg * deg; i++) {
 		P[i] = P[i] - K_phi_P[i];
 		P[i] = division(P[i], lambda);
 	}
 	constant_trace_covariance_matrix(P);
+	return 0;
 }
 
 static void combine_model_and_custom_filters(const int64_t *A,
@@ -526,7 +549,10 @@ static int normalise_controller_gain(const int64_t *Am, const int64_t *Ao,
 	for (i = 0; i <= d_Bminus + d_Bmd; i++)
 		Bm_sum += Bm[i];
 	if (Bm_sum == 0)
-		return -1;
+	{
+		pr_warn("Sum of the elements of Bm polynomial is 0\n");
+		return -EDOM;
+	}
 	beta = division(Am_sum, Bm_sum);
 
 	for (i = 0; i <= d_Bmd + d_Ao; i++)
@@ -579,14 +605,14 @@ int controller_synthesis(const int64_t *A, const int64_t *Bplus,
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
 							tuners->Am, c);
 	err = solve_linear_equation_inplace(d_M, M, c, temp);
-	if (err != 0)
+	if (err)
 		return err;;
 	conv(temp, tuners->Rd, Rtemp, d_Rp + 1, d_Rd + 1);
 	conv(Rtemp, Bplus, poly->R, d_Rp + d_Rd + 1, d_Bplus + 1);
 	conv(&temp[d_Rp + 1], tuners->Sd, poly->S, d_Sp + 1, d_Sd + 1);
 	err = normalise_controller_gain(tuners->Am, tuners->Ao, Bminus, Bmd,
 					poly->T);
-	if (err == -1)
+	if (err)
 		return err;
 	calculate_anti_windup_polynomial(poly->D, poly->R, tuners->Ao);
 	return err;
@@ -645,7 +671,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	tlm_add_sample(&sample);
 #endif
 
-	if (dbs_info->err == -1)
+	if (dbs_info->err)
 			restart_controller(dbs_info);
 	if (v < 0)
 		freq_next = 0;
