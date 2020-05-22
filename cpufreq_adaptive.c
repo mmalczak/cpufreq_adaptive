@@ -44,6 +44,28 @@ static int tlmsrv_init(void);
 static void tlmsrv_exit(void);
 #endif
 
+/*
+ * Not all CPUs want IO time to be accounted as busy; this depends on how
+ * efficient idling at a higher frequency/voltage is.
+ * Pavel Machek says this is not so for various generations of AMD and old
+ * Intel systems.
+ * Mike Chan (android.com) claims this is also not true for ARM.
+ * Because of this, whitelist specific known (series) of CPUs by default, and
+ * leave all others up to the user.
+ */
+static int should_io_be_busy(void)
+{
+#if defined(CONFIG_X86)
+	/*
+	 * For Intel, Core 2 (model 15) and later have an efficient idle.
+	 */
+	if (boot_cpu_data.x86_vendor == X86_VENDOR_INTEL &&
+			boot_cpu_data.x86 == 6 &&
+			boot_cpu_data.x86_model >= 15)
+		return 1;
+#endif
+	return 0;
+}
 
 /* Fixed point arythmetics */
 
@@ -741,9 +763,56 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 
 /* sysfs read/write end */
 
+static ssize_t store_io_is_busy(struct gov_attr_set *attr_set, const char *buf,
+				size_t count)
+{
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);
+	unsigned int input;
+	int ret;
+
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	dbs_data->io_is_busy = !!input;
+
+	/* we need to re-evaluate prev_cpu_idle */
+	gov_update_cpu_data(dbs_data);
+
+	return count;
+}
+
+static ssize_t store_ignore_nice_load(struct gov_attr_set *attr_set,
+				      const char *buf, size_t count)
+{
+	struct dbs_data *dbs_data = to_dbs_data(attr_set);
+	unsigned int input;
+	int ret;
+
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (input > 1)
+		input = 1;
+
+	if (input == dbs_data->ignore_nice_load) { /* nothing to do */
+		return count;
+	}
+	dbs_data->ignore_nice_load = input;
+
+	/* we need to re-evaluate prev_cpu_idle */
+	gov_update_cpu_data(dbs_data);
+
+	return count;
+}
+
 gov_show_one_common(sampling_rate);
+gov_show_one_common(ignore_nice_load);
+gov_show_one_common(io_is_busy);
 
 gov_attr_rw(sampling_rate);
+gov_attr_rw(ignore_nice_load);
+gov_attr_rw(io_is_busy);
 
 /* Specific parameters for cpufreq_adaptive */
 
@@ -808,6 +877,8 @@ gov_attr_rw(Sd);
 
 static struct attribute *adaptive_attributes[] = {
 	&sampling_rate.attr,
+	&ignore_nice_load.attr,
+	&io_is_busy.attr,
 /* Specific parameters for cpufreq_adaptive */
 	&lambda.attr,
 	&uc.attr,
@@ -868,6 +939,8 @@ static int adaptive_init(struct dbs_data *dbs_data)
 	if (!tuners)
 		return -ENOMEM;
 
+	dbs_data->ignore_nice_load = 0;
+	dbs_data->io_is_busy = should_io_be_busy();
 	dbs_data->tuners = tuners;
 	adaptive_dbs_tuners_init(dbs_data->tuners);
 	return 0;
