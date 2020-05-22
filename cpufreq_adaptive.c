@@ -30,7 +30,7 @@
 #define  CLASS_NAME  ( KBUILD_MODNAME "tlm" )
 #include "tlmt.h"
 
-static int	  device_major_number;
+static int device_major_number;
 static struct class*  tlmsrv_class	= NULL;
 static struct device* tlmsrv_device = NULL;
 
@@ -77,6 +77,7 @@ static inline int64_t division(int64_t a, int64_t b)
 /* Fixed point arythmetics end */
 
 /* Maths */
+
 static inline int pow_10(const int l)
 {
 	int i;
@@ -86,7 +87,7 @@ static inline int pow_10(const int l)
 	return ret;
 }
 
-static void conv(const int64_t *a, const int64_t *b,int64_t *c, const int a_l,
+static void conv(const int64_t *a, const int64_t *b, int64_t *c, const int a_l,
 		const int b_l)
 {
 	int i = 0;
@@ -107,9 +108,11 @@ static void conv(const int64_t *a, const int64_t *b,int64_t *c, const int a_l,
 		}
 	}
 }
+
 /* Maths end*/
 
 /* Matrix operations */
+
 static inline int64_t dot_product(const int N, const int64_t *a,
 					const int64_t *b)
 {
@@ -152,6 +155,7 @@ static void multiply_matrices(const int M, const int N, const int K,
 		}
 	}
 }
+
 /* Matrix operations end*/
 
 /* Linear solver */
@@ -278,6 +282,7 @@ static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 
 
 /* Estimator */
+
 static void conditionally_update_theta(const int64_t phi_P_phi, int64_t *theta,
 					const int64_t *K, const int64_t epsilon)
 {
@@ -367,7 +372,8 @@ static int update_estimation(int64_t *theta, int64_t *P, const int64_t lambda,
 /* Estimator end */
 
 /* Controller */
-static void combine_model_and_custom_filters(const int64_t *A,
+
+static inline void combine_model_and_custom_filters(const int64_t *A,
 					const int64_t *Rd, int64_t *ARd,
 					const int64_t *Bminus,
 					const int64_t *Sd, int64_t *BminusSd)
@@ -488,8 +494,6 @@ int controller_synthesis(const int64_t *A, const int64_t *Bplus,
 	return err;
 }
 
-
-
 void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 {
 	int i;
@@ -506,8 +510,6 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 		for (j = 0; j < deg; j++) {
 			if (j == i)
 				dbs_info->est_params.P[i * deg + j] = FP(100);
-			else
-				dbs_info->est_params.P[i * deg + j] = FP(0);
 		}
 	}
 	for (i = 0; i < deg; i++) {
@@ -629,8 +631,8 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 	unsigned int freq_next;
 	static int load_counter = 0;
 	int64_t v;
-	int i;
 #if TELEMETRY
+	int i;
 	struct tlm_sample sample;
 #endif
 
@@ -685,6 +687,7 @@ static unsigned int adaptive_dbs_update(struct cpufreq_policy *policy)
 /************************** sysfs interface ************************/
 
 /* sysfs read/write */
+
 static ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
 {
 	int ret = 0;
@@ -744,7 +747,6 @@ gov_attr_rw(sampling_rate);
 
 /* Specific parameters for cpufreq_adaptive */
 
-
 static ssize_t store_lambda(struct gov_attr_set *attr_set, const char *buf,
 				size_t count)
 {
@@ -754,15 +756,11 @@ static ssize_t store_lambda(struct gov_attr_set *attr_set, const char *buf,
 	int ret;
 	int buf_idx=0;
 	ret = sscanf_fp(buf, &input, &buf_idx);
-
-	if (ret != 1) {
+	if (ret != 1)
 		return -EINVAL;
-	}
-	if (input > FP(1) || input <= FP(0)) {
+	if (input > FP(1) || input <= FP(0))
 		return -EINVAL;
-	}
 	tuners->lambda = input;
-
 	return count;
 }
 
@@ -775,15 +773,11 @@ static ssize_t store_uc(struct gov_attr_set *attr_set, const char *buf,
 	int ret;
 	int buf_idx=0;
 	ret = sscanf_fp(buf, &input, &buf_idx);
-
-	if (ret != 1) {
+	if (ret != 1)
 		return -EINVAL;
-	}
-	if (input > FP(100) || input < FP(0)) {
+	if (input > FP(100) || input < FP(0))
 		return -EINVAL;
-	}
 	tuners->uc= input;
-
 	return count;
 }
 
