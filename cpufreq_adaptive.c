@@ -718,6 +718,9 @@ static ssize_t sscanf_fp(const char *buf, int64_t *value, int *buf_idx)
 	int fractional = 0;
 	int len = 0;
 	*value = 0;
+	while (buf[*buf_idx] == ' ') {
+		(*buf_idx)++;
+	}
 	if (buf[*buf_idx] == '-') {
 		negative = 1;
 		(*buf_idx)++;
