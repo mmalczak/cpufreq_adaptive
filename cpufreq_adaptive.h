@@ -57,7 +57,7 @@
 #define PARAMS_FILTER_LENGTH 1
 
 #define POINT_POS (32)
-#define FP(X) ((X) * ((int64_t)1<<(POINT_POS)))
+#define FP(X) ((int64_t)((X) * ((int64_t)1<<(POINT_POS))))
 #define FP_MAX ((int64_t)0x7fffffffffffffff)
 #define FP_MIN ((int64_t)0x8000000000000000)
 
