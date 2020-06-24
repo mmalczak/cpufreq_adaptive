@@ -747,6 +747,7 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 	int fractional;
 	int precision = 3;
 	int64_t round = FP(0.999);
+	int negative = value < 0 ? 1 : 0;
 	/*
 	 * Since we are working on fixed point arythmetics, the rounding does
 	 * not work as expected. Division by the number a little less, but
@@ -757,8 +758,12 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 	value -= decimal * FP(1);
 	value *= pow_10(precision);
 	fractional = value / round;
-	return sprintf(buf, "%d.%0*d%c", decimal, precision, abs(fractional),
-			end_char);
+	if (negative)
+		return sprintf(buf, "-%d.%0*d%c", abs(decimal), precision, abs(fractional),
+				end_char);
+	else
+		return sprintf(buf, "%d.%0*d%c", abs(decimal), precision, abs(fractional),
+				end_char);
 }
 
 /* sysfs read/write end */
