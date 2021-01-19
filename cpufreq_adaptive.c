@@ -306,7 +306,7 @@ static int solve_linear_equation_inplace(const int N, int64_t *A, int64_t *b,
 /* Estimator */
 
 static void conditionally_update_theta(const int64_t phi_P_phi, int64_t *theta,
-					const int64_t *K, const int64_t epsilon)
+				const int64_t *K, const int64_t epsilon)
 {
 	int i = 0;
 	int64_t kappa = 0;
@@ -497,7 +497,8 @@ int controller_synthesis(const int64_t *A, const int64_t *Bplus,
 			if (j < d_Rp + 1)
 				fill_autoregresive_coeff(M, d_M, ARd, i, j);
 			else
-				fill_moving_average_coeff(M, d_M, BminusSd, i, j);
+				fill_moving_average_coeff(M, d_M, BminusSd, i,
+									j);
 		}
 	}
 	combine_observer_polynomial_and_modeled_dynamics(tuners->Ao,
@@ -523,8 +524,10 @@ void restart_controller(struct adaptive_policy_dbs_info *dbs_info)
 
 	dbs_info->err = 0;
 	dbs_info->phi_P_phi = 0;
-	memset(&(dbs_info->est_params), 0, sizeof(struct adaptive_estimation_params));
-	memset(&(dbs_info->poly), 0, sizeof(struct adaptive_controller_polynomials));
+	memset(&(dbs_info->est_params), 0,
+		sizeof(struct adaptive_estimation_params));
+	memset(&(dbs_info->poly), 0,
+		sizeof(struct adaptive_controller_polynomials));
 	memset(&(dbs_info->buf), 0, sizeof(struct adaptive_controller_buffers));
 	memset(&(dbs_info->filt_params), 0, sizeof(struct filter_params));
 
@@ -596,9 +599,11 @@ int64_t calculate_control_signal(struct adaptive_dbs_tuners *tuners,
 
 	for (i = 0; i < deg; i++) {
 		if (dbs_info->est_params.theta[i] > tuners->theta_limit_up[i])
-			dbs_info->est_params.theta[i] = tuners->theta_limit_up[i];
+			dbs_info->est_params.theta[i] =
+						tuners->theta_limit_up[i];
 		else if (dbs_info->est_params.theta[i] < tuners->theta_limit_down[i])
-			dbs_info->est_params.theta[i] = tuners->theta_limit_down[i];
+			dbs_info->est_params.theta[i] =
+						tuners->theta_limit_down[i];
 	}
 	filter_params(dbs_info, dbs_info->est_params.theta,
 			dbs_info->est_params.theta_out);
@@ -621,13 +626,13 @@ int64_t calculate_control_signal(struct adaptive_dbs_tuners *tuners,
 	v = 0;
 	for (i = 1; i < d_R+1; i++)
 		v = v - mult(dbs_info->poly.R[i],
-				dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+			dbs_info->buf.v[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
 	for (i = 0; i < d_S + 1; i++)
 		v = v - mult(dbs_info->poly.S[i],
-				dbs_info->buf.y[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+			dbs_info->buf.y[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
 	for (i = 0; i < d_T + 1; i++) {
 		v = v + mult(dbs_info->poly.T[i],
-				dbs_info->buf.uc[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
+			dbs_info->buf.uc[BUF_IDX_ADD(dbs_info->buf.idx, i)]);
 	}
 	for (i = 0; i < d_D; i++) {
 		v = v + mult(dbs_info->poly.D[i + 1],
@@ -762,11 +767,11 @@ static size_t sprintf_fp(char *buf, int64_t value, char end_char)
 	value *= pow_10(precision);
 	fractional = value / round;
 	if (negative)
-		return sprintf(buf, "-%d.%0*d%c", abs(decimal), precision, abs(fractional),
-				end_char);
+		return sprintf(buf, "-%d.%0*d%c", abs(decimal), precision,
+			       abs(fractional), end_char);
 	else
-		return sprintf(buf, "%d.%0*d%c", abs(decimal), precision, abs(fractional),
-				end_char);
+		return sprintf(buf, "%d.%0*d%c", abs(decimal), precision,
+			       abs(fractional), end_char);
 }
 
 /* sysfs read/write end */
@@ -961,7 +966,8 @@ static void adaptive_exit(struct dbs_data *dbs_data)
 
 static void adaptive_start(struct cpufreq_policy *policy)
 {
-	struct adaptive_policy_dbs_info *dbs_info = to_dbs_info(policy->governor_data);
+	struct adaptive_policy_dbs_info *dbs_info =
+					to_dbs_info(policy->governor_data);
 	restart_controller(dbs_info);
 }
 
@@ -1014,35 +1020,29 @@ module_exit(cpufreq_gov_adaptive_exit);
 #if TELEMETRY
 static void tlm_add_sample(struct tlm_sample *sample)
 {
+	struct timespec64 ts;
 
-  struct timespec64 ts;
+	// update sample time
+	ktime_get_real_ts64(&ts);
+	sample->ts_sec = ts.tv_sec;
+	sample->ts_nsec = ts.tv_nsec;
 
-  // update sample time
-  ktime_get_real_ts64(&ts);
-  sample->ts_sec = ts.tv_sec;
-  sample->ts_nsec = ts.tv_nsec;
+	mutex_lock(&tlmbuff_mutex);
 
-  mutex_lock(&tlmbuff_mutex);
+	if (tlm.data_count >= TLM_BUFFER_SIZE) {
+		tlm.data_count = 0;
+		tlm.data_lost++;
+	}
 
-  if (tlm.data_count >= TLM_BUFFER_SIZE) {
-	tlm.data_count = 0;
-	tlm.data_lost++;
-  }
-
-  memcpy(tlm.data + tlm.data_count, sample, sizeof(struct tlm_sample));
-
-  tlm.data_count++;
-
-  mutex_unlock(&tlmbuff_mutex);
-
+	memcpy(tlm.data + tlm.data_count, sample, sizeof(struct tlm_sample));
+	tlm.data_count++;
+	mutex_unlock(&tlmbuff_mutex);
 }
 
 static void tlm_buffer_reset(void)
 {
-
-  tlm.data_count = 0;
-  tlm.data_lost = 0;
-
+	tlm.data_count = 0;
+	tlm.data_lost = 0;
 }
 
 /*
@@ -1051,67 +1051,63 @@ static void tlm_buffer_reset(void)
 
 static int dev_open(struct inode *inodep, struct file *filep)
 {
+	if (!mutex_trylock(&tlmsrv_mutex)) {
+		pr_info("Device in use by another process");
+		return -EBUSY;
+	}
 
-  if (!mutex_trylock(&tlmsrv_mutex)) {
-	pr_info("Device in use by another process");
-	return -EBUSY;
-  }
-
-  return 0;
-
+	return 0;
 }
 
-static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
+static ssize_t dev_read(struct file *filep, char *buffer, size_t len,
+								loff_t *offset)
 {
-
   int error_count = 0;
 
-  /*
-   * Specific tlmsrv should be read ONLY by appropriate tlm compiled along
-   * with it. This check is not bulletproof, but it is the most that can be
-   * done.
-   */
-  if (len != sizeof(struct tlm_private)) {
-	pr_alert("Invalid data length requested. Use appropriate tlm for this tlmsrv.");
-	return -EBADR;
-  }
+	/*
+	 * Specific tlmsrv should be read ONLY by appropriate tlm compiled along
+	 * with it. This check is not bulletproof, but it is the most that can be
+	 * done.
+	 */
+	if (len != sizeof(struct tlm_private)) {
+		pr_alert("Invalid data length requested. Use appropriate tlm for this tlmsrv.");
+		return -EBADR;
+	}
 
-  mutex_lock(&tlmbuff_mutex);
+	mutex_lock(&tlmbuff_mutex);
 
-  error_count = copy_to_user(buffer, &tlm, sizeof(struct tlm_private));
+	error_count = copy_to_user(buffer, &tlm, sizeof(struct tlm_private));
 
-  tlm_buffer_reset();
+	tlm_buffer_reset();
 
-  mutex_unlock(&tlmbuff_mutex);
+	mutex_unlock(&tlmbuff_mutex);
 
-  if (error_count == 0) {
-	return 0;
-  } else {
-	pr_alert("Failed to provde ts data to user-space.");
-	return -EFAULT;
-  }
-
+	if (error_count == 0) {
+		return 0;
+	} else {
+		pr_alert("Failed to provde ts data to user-space.");
+		return -EFAULT;
+	}
 }
 
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,
+								loff_t *offset)
 {
-
-  return -EACCES;
-
+	return -EACCES;
 }
 
 static int dev_release(struct inode *inodep, struct file *filep)
 {
-  mutex_unlock(&tlmsrv_mutex);
-  return 0;
+	mutex_unlock(&tlmsrv_mutex);
+	return 0;
 }
 
 static struct file_operations fops =
 {
-  .open = dev_open,
-  .read = dev_read,
-  .write = dev_write,
-  .release = dev_release,
+	.open = dev_open,
+	.read = dev_read,
+	.write = dev_write,
+	.release = dev_release,
 };
 
 /*
@@ -1119,58 +1115,56 @@ static struct file_operations fops =
  */
 
 static int __init tlmsrv_init(void){
+	int errno = 0;
 
-  int errno = 0;
-
-  /* Try to dynamically allocate a major number for the device */
-  device_major_number = register_chrdev(0, DEVICE_NAME, &fops);
-  if (device_major_number < 0){
-	pr_alert("Failed to register a major number\n");
+	/* Try to dynamically allocate a major number for the device */
+	device_major_number = register_chrdev(0, DEVICE_NAME, &fops);
+	if (device_major_number < 0){
+		pr_alert("Failed to register a major number\n");
 	return device_major_number;
-  }
+	}
 
-  /* Register the device class */
-  tlmsrv_class = class_create(THIS_MODULE, CLASS_NAME);
-  if (IS_ERR(tlmsrv_class)) {
-	errno = PTR_ERR(tlmsrv_class);
-	pr_alert("Failed to register device class");
-	goto out_clean_class;
-  }
+	/* Register the device class */
+	tlmsrv_class = class_create(THIS_MODULE, CLASS_NAME);
+	if (IS_ERR(tlmsrv_class)) {
+		errno = PTR_ERR(tlmsrv_class);
+		pr_alert("Failed to register device class");
+		goto out_clean_class;
+	}
 
-  /* Register the device driver */
-  tlmsrv_device = device_create(tlmsrv_class, NULL, MKDEV(device_major_number, 0), NULL, DEVICE_NAME);
-  if (IS_ERR(tlmsrv_device)){
-	errno = PTR_ERR(tlmsrv_device);
-	pr_alert("Failed to create the device");
-	goto out_clean_device;
-  }
+	/* Register the device driver */
+	tlmsrv_device = device_create(tlmsrv_class, NULL,
+				      MKDEV(device_major_number, 0), NULL,
+				      DEVICE_NAME);
+	if (IS_ERR(tlmsrv_device)){
+		errno = PTR_ERR(tlmsrv_device);
+		pr_alert("Failed to create the device");
+		goto out_clean_device;
+	}
 
-  mutex_init(&tlmsrv_mutex);
-  mutex_init(&tlmbuff_mutex);
+	mutex_init(&tlmsrv_mutex);
+	mutex_init(&tlmbuff_mutex);
 
-  tlm_buffer_reset();
+	tlm_buffer_reset();
 
-  /* Initialization successful */
-  return 0;
+	/* Initialization successful */
+	return 0;
 
 out_clean_device:
-  class_destroy(tlmsrv_class);
+	class_destroy(tlmsrv_class);
 out_clean_class:
-  unregister_chrdev(device_major_number, DEVICE_NAME);
-  pr_alert("Failed to create the device\n");
-  return errno;
-
+	unregister_chrdev(device_major_number, DEVICE_NAME);
+	pr_alert("Failed to create the device\n");
+	return errno;
 }
 
 static void __exit tlmsrv_exit(void){
+	mutex_destroy(&tlmsrv_mutex);
+	mutex_destroy(&tlmbuff_mutex);
 
-  mutex_destroy(&tlmsrv_mutex);
-  mutex_destroy(&tlmbuff_mutex);
-
-  device_destroy(tlmsrv_class, MKDEV(device_major_number, 0));
-  class_unregister(tlmsrv_class);
-  class_destroy(tlmsrv_class);
-  unregister_chrdev(device_major_number, DEVICE_NAME);
-
+	device_destroy(tlmsrv_class, MKDEV(device_major_number, 0));
+	class_unregister(tlmsrv_class);
+	class_destroy(tlmsrv_class);
+	unregister_chrdev(device_major_number, DEVICE_NAME);
 }
 #endif

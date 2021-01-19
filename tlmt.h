@@ -17,7 +17,7 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #ifndef d_Ao
-#define d_Ao 		(2)
+#define d_Ao		(2)
 #define d_Am		(3)
 #define d_Rd		(1)
 #define d_Sd		(1)
@@ -108,15 +108,14 @@ static void tlm_vector_norm(const int64_t *var, const int length,
 }
 
 // Displaying timeseries data row to stdout
-static void print_sample(struct tlm_sample *sample, char *delimiter, int long_ver)
+static void print_sample(struct tlm_sample *sample, char *delimiter,
+								int long_ver)
 {
 	/*
 	 * This function needs to print out appropriately formatted sample data
 	 * arranged in the same way as they are specified in labels definition
 	 * labelsDef.
 	 */
-
-	int i;
 
 	tlm_var(sample->err, delimiter);
 	tlm_var(sample->load, delimiter);

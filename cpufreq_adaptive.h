@@ -23,7 +23,7 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-#define d_Ao 		(2)
+#define d_Ao		(2)
 #define d_Am		(3)
 #define d_Rd		(1)
 #define d_Sd		(1)
@@ -110,7 +110,7 @@ struct adaptive_estimation_params
 {
 	int64_t P[deg * deg];
 	int64_t theta[deg];		//value used for estimation
-	int64_t theta_out[deg]; 	//filtered params
+	int64_t theta_out[deg];		//filtered params
 };
 
 struct adaptive_controller_polynomials
@@ -146,9 +146,11 @@ struct adaptive_policy_dbs_info {
 	struct filter_params filt_params;
 };
 
-static inline struct adaptive_policy_dbs_info *to_dbs_info(struct policy_dbs_info *policy_dbs)
+static inline struct adaptive_policy_dbs_info *to_dbs_info(
+					struct policy_dbs_info *policy_dbs)
 {
-	return container_of(policy_dbs, struct adaptive_policy_dbs_info, policy_dbs);
+	return container_of(policy_dbs, struct adaptive_policy_dbs_info,
+			    policy_dbs);
 }
 
 struct adaptive_dbs_tuners {
